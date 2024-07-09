@@ -1,0 +1,95 @@
+name: CI/CD
+
+on: # events that trigger our pipeline: push on any branch and release creation
+  push:
+  release:
+    types: [published]
+
+jobs:
+  lint:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.12"
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install pre-commit
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.12"
+          - "pypy-3.9"
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          export PATH=$PATH:$HOME/.local/bin
+          poetry install
+      - name: Run pytest
+        run: |
+          poetry run pytest --cov-report=xml --cov=pyscenario tests
+      - name: "Upload coverage to Codecov"
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: true
+  #        token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+      - name: Install tox, tox-gh
+        run: python -m pip install tox tox-gh
+      - name: Setup test suite
+        run: python -mtox r --notest
+      - name: Run test suite
+        run: python -mtox r --skip-pkg-install
+        env:
+          PYTEST_ADDOPTS: "-vv --durations=10"
+  build-n-publish:
+    environment: production
+    name: Build and publish Python distributions to PyPI
+    needs:
+      - test
+      - lint
+    if: github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - name: Install poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          export PATH=$PATH:$HOME/.local/bin
+      - name: Check tag and version match
+        run: |
+          if [ "`poetry version -s`" != "${{ github.ref_name }}" ]; then
+            echo Tag ${{ github.ref_name }} does not match \
+            package version `poetry version -s`.
+            exit 1
+          else
+            echo Package version and tag match.
+          fi
+      - name: Build package
+        run: poetry build
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
