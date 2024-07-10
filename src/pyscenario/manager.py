@@ -1,4 +1,23 @@
-"""Device Manager."""
+"""
+Device Manager Module.
+
+This module contains classes for managing devices, including lights and covers. It provides methods
+for handling device states and configurations.
+
+Classes:
+    Device: Base class for all devices.
+    Light: Class representing a light device.
+    Cover: Class representing a cover device.
+    DeviceManager: Class for managing a collection of devices.
+
+Functions:
+    from_config: Creates a DeviceManager object from a configuration file.
+    get_devices_by_type: Retrieves devices of a specified type.
+    get_device_by_id: Retrieves a device by its unique ID.
+    async_handle_zone_state_change: Updates the intensity of a device.
+    async_handle_scene_state_change: Updates the state of a scene.
+    notify_subscriber: Notifies subscribers about changes.
+"""
 
 from collections.abc import Callable
 
@@ -17,34 +36,70 @@ from .const import (
 
 
 class Device:
-    """Device class."""
+    """
+    Base class for all devices.
+
+    Attributes
+    ----------
+        unique_id (str): Unique identifier for the device.
+        name (str): Name of the device.
+        zone (str): Zone where the device is located.
+        callback_ (Callable[[], None] | None): Callback function for updates.
+    """
 
     def __init__(self) -> None:
-        """Device class."""
+        """Initialize a Device object."""
         self.unique_id: str = ""
         self.name: str = ""
         self.zone: str = ""
         self.callback_: Callable[[], None] | None = None
 
     def get_device_id(self) -> str:
-        """Return unique id."""
+        """
+        Return the unique ID of the device.
+
+        Returns
+        -------
+            str: Unique ID of the device.
+        """
         return self.unique_id
 
     def get_name(self) -> str:
-        """Return name."""
+        """
+        Return the name of the device.
+
+        Returns
+        -------
+            str: Name of the device.
+        """
         return self.name
 
     def add_subscriber(self, callback_: Callable[[], None]) -> None:
-        """Set a callback function to be called when a response is received."""
+        """
+        Set a callback function to be called when a response is received.
+
+        Args:
+            callback_ (Callable[[], None]): The callback function.
+        """
         self.callback_ = callback_
 
     def remove_subscriber(self) -> None:
-        """Remove callback function."""
+        """Remove the callback function."""
         self.callback_ = None
 
 
 class Light(Device):
-    """Light class."""
+    """
+    Class representing a light device.
+
+    Attributes
+    ----------
+        unique_id (str): Unique identifier for the light.
+        name (str): Name of the light.
+        zone (str): Zone where the light is located.
+        is_rgb (bool): Indicates if the light supports RGB.
+        address (list[dict[str, str]]): List of addresses for the light.
+    """
 
     def __init__(
         self,
@@ -54,7 +109,16 @@ class Light(Device):
         is_rgb: bool,
         address: list[dict[str, str]],
     ) -> None:
-        """Init light class."""
+        """
+        Initialize a Light object.
+
+        Args:
+            unique_id (str): Unique identifier for the light.
+            name (str): Name of the light.
+            zone (str): Zone where the light is located.
+            is_rgb (bool): Indicates if the light supports RGB.
+            address (list[dict[str, str]]): List of addresses for the light.
+        """
         super().__init__()
         self.unique_id = str(f"{unique_id}_{zone}").lower().replace(" ", "_")
         self.name = name
@@ -63,17 +127,45 @@ class Light(Device):
         self.address = address
 
     def get_is_rgb(self) -> bool:
-        """Return if the light is RGB."""
+        """
+        Return if the light supports RGB.
+
+        Returns
+        -------
+            bool: True if the light supports RGB, False otherwise.
+        """
         return self.is_rgb
 
 
 class Cover(Device):
-    """Cover class."""
+    """
+    Class representing a cover device.
+
+    Attributes
+    ----------
+        unique_id (str): Unique identifier for the cover.
+        name (str): Name of the cover.
+        zone (str): Zone where the cover is located.
+        up (str): Address for the up command.
+        stop (str): Address for the stop command.
+        down (str): Address for the down command.
+        is_closed (bool): Indicates if the cover is closed.
+    """
 
     def __init__(
         self, unique_id: str, name: str, zone: str, up: str, stop: str, down: str
     ) -> None:
-        """Init light class."""
+        """
+        Initialize a Cover object.
+
+        Args:
+            unique_id (str): Unique identifier for the cover.
+            name (str): Name of the cover.
+            zone (str): Zone where the cover is located.
+            up (str): Address for the up command.
+            stop (str): Address for the stop command.
+            down (str): Address for the down command.
+        """
         super().__init__()
         self.unique_id = str(f"{unique_id}_{zone}").lower().replace(" ", "_")
         self.name = name
@@ -85,7 +177,15 @@ class Cover(Device):
 
 
 class DeviceManager:
-    """Device Manager."""
+    """
+    Class for managing a collection of devices.
+
+    Attributes
+    ----------
+        lights (list[Light]): List of light devices.
+        covers (list[Cover]): List of cover devices.
+        zones (dict[str, str]): Dictionary mapping zone IDs to zone names.
+    """
 
     def __init__(
         self,
@@ -93,14 +193,30 @@ class DeviceManager:
         covers: list[Cover],
         zones: dict[str, str],
     ) -> None:
-        """Device Manager."""
+        """
+        Initialize a DeviceManager object.
+
+        Args:
+            lights (list[Light]): List of light devices.
+            covers (list[Cover]): List of cover devices.
+            zones (dict[str, str]): Dictionary mapping zone IDs to zone names.
+        """
         self.lights = lights
         self.covers = covers
         self.zones = zones
 
     @classmethod
     def from_config(cls, config_file: str):
-        """Create Device Manager from config file."""
+        """
+        Create a DeviceManager object from a configuration file.
+
+        Args:
+            config_file (str): Path to the configuration file.
+
+        Returns
+        -------
+            DeviceManager | None: An instance of the DeviceManager class, or None if the file is not found.
+        """
         try:
             with open(config_file, encoding="utf-8") as file:
                 data = yaml.safe_load(file)
@@ -141,7 +257,16 @@ class DeviceManager:
             return None
 
     def get_devices_by_type(self, device_type: str) -> list[Light] | list[Cover] | None:
-        """Get devices by type."""
+        """
+        Get devices by type.
+
+        Args:
+            device_type (str): The type of device to retrieve (LIGHT_DEVICES or COVER_DEVICES).
+
+        Returns
+        -------
+            list[Light] | list[Cover] | None: List of devices of the specified type, or None if the type is invalid.
+        """
         if device_type == LIGHT_DEVICES:
             return self.lights
 
@@ -151,7 +276,16 @@ class DeviceManager:
         return None
 
     def get_device_by_id(self, id: str) -> Device | None:
-        """Get device by id."""
+        """
+        Get a device by its unique ID.
+
+        Args:
+            id (str): The unique ID of the device.
+
+        Returns
+        -------
+            Device | None: The device with the specified ID, or None if not found.
+        """
         for device in self.lights:
             if device.unique_id == id:
                 return device
@@ -160,7 +294,14 @@ class DeviceManager:
     async def async_handle_zone_state_change(
         self, module_number: int, channel: int, state: int
     ) -> None:
-        """Update device intensity."""
+        """
+        Asynchronously update the intensity of a device.
+
+        Args:
+            module_number (int): The module number.
+            channel (int): The channel number.
+            state (int): The new state to set.
+        """
         for light in self.lights:
             for address in light.address:
                 if (
@@ -177,7 +318,13 @@ class DeviceManager:
     async def async_handle_scene_state_change(
         self, change_address: str, state: str
     ) -> None:
-        """Update scene."""
+        """
+        Asynchronously update the state of a scene.
+
+        Args:
+            change_address (str): The address to change.
+            state (str): The new state to set.
+        """
         kwargs = {}
         for cover in self.covers:
             if change_address in [cover.up, cover.down, cover.stop]:
@@ -201,7 +348,12 @@ class DeviceManager:
                     cover.callback_(**kwargs)
 
     def notify_subscriber(self, **kwargs: str) -> None:
-        """Notify change."""
+        """
+        Notify subscribers about changes.
+
+        Args:
+            **kwargs (str): Keyword arguments containing the state changes.
+        """
         for light in self.lights:
             if light.callback_ is not None:
                 light.callback_(**kwargs)

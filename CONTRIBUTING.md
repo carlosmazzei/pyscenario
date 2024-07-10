@@ -5,18 +5,20 @@
 [![PyPI version](https://badge.fury.io/py/pyscenario.svg)](https://pypi.org/project/pyscenario/)
 [![Documentation Status](https://readthedocs.org/projects/pyscenario/badge/?version=latest)](https://pyscenario.readthedocs.io/en/latest/?badge=latest)
 
-
 Python Scenario Automation contains a library to interface with Scenario IFSEI Classic for home automation.
 
 Original repository: [https://github.com/carlosmazzei/pyscenario](https://github.com/carlosmazzei/pyscenario)
 
-TODO: This is an auto-generated README file. Make sure to adjust it to your needs,
-and remove sections that are not applicable for your software.
+## Code of Conduct
 
+Everyone participating in the community, and in particular in our
+issue tracker, pull requests, and chat, is expected to treat
+other people with respect and more generally to follow the guidelines
+articulated in the [Python Community Code of Conduct](https://www.python.org/psf/codeofconduct/).
 
-# Linting and Testing
+## Linting and Testing
 
-## Locally on every commit
+### Locally on every commit
 
 On every commit, some code formatting and checking tools are run by
 [pre-commit](https://pre-commit.com/).
@@ -27,8 +29,7 @@ The test pipeline is configured in the
 **Note:** you *must* run `poetry run pre-commit install` everytime you clone your
 git repository. Else, the pre-commit hooks won't be run automatically.
 
-
-## Running tests locally
+### Running tests locally
 
 On your local machine, you can run tests by running `make test`.
 
@@ -40,12 +41,10 @@ As a prerequisite you need to install all those Python version, e.g., with
 
 To configure the Python versions under test, edit the [tox.ini](tox.ini).
 
-
 ## With Github actions
 
 After every push to Github, the [cicd.yaml](.github/workflows/cicd.yaml)
-workflow is run. It runs the tests in the [tests](tests) folder for a bunch
-of Python versions.
+workflow is run. It runs the tests in the [tests](tests) folder.
 
 It also uploads the code coverage report to [codecov](https://codecov.io).
 
@@ -55,8 +54,7 @@ and configure in the `cicd.yaml` workflow file and in Github secrets.
 To configure which Python versions are tested, edit the `python-version`
 list in the `cicd.yaml` workflow file.
 
-
-# How to release to PyPI
+## How to release to PyPI
 
 You can upload the package either from your local machine via twine, or
 by using Github actions.
@@ -67,8 +65,7 @@ official PyPI.
 Further down, there are instructions to release to the PyPI test server, or to custom
 Python Package indexes.
 
-
-## Release with Github actions
+### Release with Github actions
 
 To make a release via Github actions, you need to create a release in
 Github. When the release is published, the build-n-publish job in the
@@ -80,7 +77,7 @@ To create a release in Github you need to create a tag.
 For this project it is necessary that the tag matches the version number.
 E.g., for version `1.2.3` the tag must be `1.2.3`.
 
-### Prerequisites
+#### Prerequisites
 
 1. Create an API token in the
    [PyPI account settings](https://pypi.org/manage/account/).
@@ -98,18 +95,19 @@ E.g., for version `1.2.3` the tag must be `1.2.3`.
    create a new secret named `PYPI_API_TOKEN` and copy the token from PyPI
    as value.
 
-
-### Create a release and publish the package to PyPI
+#### Create a release and publish the package to PyPI
 
 1. Make sure the `name` variable in your [pyproject.toml](pyproject.toml) is correct.
    **This will be the name of your package on PyPI!**
 2. update the version number in the [pyproject.toml](pyproject.toml).
 3. create a matching tag on your local machine and push it to the
    Github repository:
+
    ```bash
    git tag 1.2.3
    git push --tags
    ```
+
 4. In [Github actions](https://github.com/carlosmazzei/pyscenario/actions)
    make sure that the test workflow succeeds.
 5. In the Github [release tab](https://github.com/carlosmazzei/pyscenario/releases)
@@ -120,18 +118,18 @@ E.g., for version `1.2.3` the tag must be `1.2.3`.
    publishes the package to
    [PyPI](https://pypi.org/project/pyscenario/).
 
-## Upload from the local machine (not recommended)
+### Upload from the local machine (not recommended)
 
 [twine](https://twine.readthedocs.io/en/stable/) allows to upload a package
 from your local machine to PyPI.
 
-### Prerequisites
+#### Prerequisites for local machine
 
 You need a PyPI API token. See prerequisites for the Github actions above
 (you don't need to perform any actions on Github when using twine, so you
 only need to perform step 1).
 
-### Configuration
+#### Configuration
 
 The PyPI credentials must be configured either via a configuration file
 or via environment variables.
@@ -144,7 +142,7 @@ must be set to `__token__`, and the password is the actual token.
 When using the PyPI test server, the repository url must be set to
 `https://test.pypi.org/legacy/`.
 
-### Usage
+#### Usage
 
 The `publish` target in the [Makefile](Makefile) calls twine to upload
 a package to PyPI.
@@ -157,8 +155,7 @@ Here are the necessary steps:
 1. update the version number in the [pyproject.toml](pyproject.toml)
 2. run `make publish`.
 
-
-# Using a custom package repository
+## Using a custom package repository
 
 While testing the release process of a public package, it is a good idea to first
 release to the PyPI Test server.
@@ -166,13 +163,12 @@ release to the PyPI Test server.
 Sometimes, especially in corporate settings, it is necessary to upload packages to
 a custom, often private, package repository.
 
-## Releasing
+### Releasing
 
 To release to a server other than the standard PyPI, you need to specify the respective
 repository URL when uploading.
 
-
-### Releasing to a custom repo with twine
+#### Releasing to a custom repo with twine
 
 With twine, you can specify the repository URL via the `--repository-url` parameter.
 
@@ -192,8 +188,7 @@ In the context of this project, you can modify the `publish` target in the
 
 See also [Using TestPyPI](https://packaging.python.org/en/latest/guides/using-testpypi/).
 
-
-### Releasing to a custom repo with Github actions
+#### Releasing to a custom repo with Github actions
 
 To release to a custom repo with Github actions, you can follow the same process
 as described above for the default PyPI. The only necessary change is adding a
@@ -212,15 +207,13 @@ be stored in the `TEST_PYPI_API_TOKEN` secret in Github.
 See also [Advanced release management](https://github.com/marketplace/actions/pypi-publish#advanced-release-management)
 in the documentation of the `pypi-publish` Github action.
 
-
-## Installing from a custom package repository
+### Installing from a custom package repository
 
 If you have uploaded your package to a custom repository, install tools such as
 pip and poetry won't find it by default. You need to configure them to use the
 custom repository.
 
-
-### Installing from a custom package repository with pip
+#### Installing from a custom package repository with pip
 
 With pip, you need to specify it via the `--index-url` parameter. Often you want to
 install custom packages from the private repo, but public dependencies from the regular
@@ -233,8 +226,7 @@ For example:
 **Beware the
 [security implications](https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610)!**
 
-
-### Installing from a custom package repository with poetry
+#### Installing from a custom package repository with poetry
 
 To install packages from a custom repository, add this to your `pyproject.toml`:
 
@@ -249,7 +241,7 @@ default = true  # if True, poetry will never search the default PyPI repository
 For advanced configuration and authentication, take a look at the
 [poetry documentation](https://python-poetry.org/docs/repositories/#install-dependencies-from-a-private-repository).
 
-# Contact
+## Contact
 
 Carlos Mazzei
   ([carlos.mazzei@gmail.com](mailto:carlos.mazzei@gmail.com))

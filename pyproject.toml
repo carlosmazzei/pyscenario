@@ -9,7 +9,7 @@ homepage = "https://github.com/carlosmazzei/pyscenario"
 repository = "https://github.com/carlosmazzei/pyscenario"
 documentation = "https://pyscenario.readthedocs.io"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 2 - Pre-alpha",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: PyPy"
 ]
@@ -44,6 +44,7 @@ tox = "^4.0.0"
 # deployment
 twine = "^4.0.2"
 mypy = "^1.10.1"
+pytest-asyncio = "^0.23.7"
 
 [tool.ruff]
 lint.select = [
