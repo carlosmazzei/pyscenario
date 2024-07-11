@@ -4,9 +4,6 @@ IFSEI Module.
 This module contains the IFSEI class, which represents an IFSEI device. It provides methods to manage
 the connection, send commands, and handle responses from the device.
 
-Classes:
-    IFSEI: Represents an IFSEI device and provides methods to interact with it.
-
 """
 
 import asyncio

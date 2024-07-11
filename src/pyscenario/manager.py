@@ -4,12 +4,6 @@ Device Manager Module.
 This module contains classes for managing devices, including lights and covers. It provides methods
 for handling device states and configurations.
 
-Classes:
-    Device: Base class for all devices.
-    Light: Class representing a light device.
-    Cover: Class representing a cover device.
-    DeviceManager: Class for managing a collection of devices.
-
 """
 
 from collections.abc import Callable

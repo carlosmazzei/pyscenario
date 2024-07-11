@@ -5,9 +5,6 @@ This module contains the IFSEITelnetClient class, a custom TelnetClient for hand
 communication with IFSEI devices over Telnet. It manages the connection, sending,
 and receiving of data, and handles connection loss gracefully.
 
-Classes:
-    IFSEITelnetClient: Custom TelnetClient for handling IFSEI device communication.
-
 """
 
 import asyncio
