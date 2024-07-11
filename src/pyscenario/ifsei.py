@@ -7,48 +7,6 @@ the connection, send commands, and handle responses from the device.
 Classes:
     IFSEI: Represents an IFSEI device and provides methods to interact with it.
 
-Functions:
-    from_config: Creates an IFSEI object from a configuration file.
-    _load_config: Loads a configuration file and returns its content.
-    load_devices: Loads the device manager from a configuration file.
-    set_send_delay: Sets the delay for sending commands.
-    async_connect: Asynchronously connects to the IFSEI device.
-    async_close: Asynchronously closes the connection to the IFSEI device.
-    _create_client: Creates a telnet client using a factory.
-    on_connection_lost: Callback for lost connection.
-    _async_reconnect: Asynchronously attempts to reconnect when the connection is lost.
-    async_send_command: Asynchronously sends a command to the send queue.
-    _async_process_responses: Asynchronously processes responses from the IFSEI device.
-    _async_handle_response: Asynchronously handles a response from the IFSEI device.
-    _async_handle_zone_response: Asynchronously handles a zone response from the IFSEI device.
-    _async_handle_scene_response: Asynchronously handles a scene response from the IFSEI device.
-    _async_handle_error: Asynchronously handles an error response from the IFSEI device.
-    set_protocol: Sets the communication protocol.
-    get_device_id: Returns the unique ID of the device.
-    set_is_connected: Sets the connection status.
-    async_get_version: Asynchronously gets the IFSEI version.
-    async_get_ip: Asynchronously gets the IP address.
-    async_get_gateway: Asynchronously gets the gateway.
-    async_get_netmask: Asynchronously gets the netmask.
-    async_get_tcp_port: Asynchronously gets the TCP port.
-    async_get_udp_port: Asynchronously gets the UDP port.
-    async_monitor: Asynchronously monitors the network.
-    async_update_light_state: Asynchronously updates the light state.
-    async_update_cover_state: Asynchronously updates the cover state.
-    async_change_scene: Asynchronously changes the scene.
-    async_toggle_zone: Asynchronously toggles the zone.
-    async_get_scene_status: Asynchronously gets the scene status.
-    async_set_zone_intensity: Asynchronously sets the zone intensity.
-    async_set_shader_state: Asynchronously sets the shader state.
-    async_get_zone_intensity: Asynchronously gets the zone intensity.
-    async_increase_scene_intensity: Asynchronously increases the scene intensity.
-    async_decrease_scene_intensity: Asynchronously decreases the scene intensity.
-    async_increase_zone_intensity: Asynchronously increases the zone intensity.
-    async_decrease_zone_intensity: Asynchronously decreases the zone intensity.
-    async_record_scene: Asynchronously records a scene.
-    async_get_module_configuration: Asynchronously gets the module configuration.
-    async_execute_macro_key_press: Asynchronously executes a macro key press.
-    async_execute_macro_key_release: Asynchronously executes a macro key release.
 """
 
 import asyncio

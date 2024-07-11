@@ -8,17 +8,6 @@ and receiving of data, and handles connection loss gracefully.
 Classes:
     IFSEITelnetClient: Custom TelnetClient for handling IFSEI device communication.
 
-Functions:
-    _async_run_shell: Runs the asynchronous shell for communication.
-    _async_start_tasks: Starts the asynchronous tasks for sending and receiving data.
-    _stop_tasks: Stops the currently running asynchronous tasks.
-    _async_send_data: Sends data to the IFSEI device from the queue.
-    _async_send_command_tcp: Sends a command using TCP.
-    _send_command_udp: Sends a command using UDP (not implemented).
-    _async_receive_data: Receives data from the IFSEI device.
-    _async_read_until_prompt: Reads data from the IFSEI device until a prompt is received.
-    connection_lost: Handles connection loss.
-    async_close: Disconnects from the IFSEI device.
 """
 
 import asyncio

@@ -10,13 +10,6 @@ Classes:
     Cover: Class representing a cover device.
     DeviceManager: Class for managing a collection of devices.
 
-Functions:
-    from_config: Creates a DeviceManager object from a configuration file.
-    get_devices_by_type: Retrieves devices of a specified type.
-    get_device_by_id: Retrieves a device by its unique ID.
-    async_handle_zone_state_change: Updates the intensity of a device.
-    async_handle_scene_state_change: Updates the state of a scene.
-    notify_subscriber: Notifies subscribers about changes.
 """
 
 from collections.abc import Callable
