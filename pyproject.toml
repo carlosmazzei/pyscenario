@@ -9,7 +9,7 @@ homepage = "https://github.com/carlosmazzei/pyscenario"
 repository = "https://github.com/carlosmazzei/pyscenario"
 documentation = "https://pyscenario.readthedocs.io"
 classifiers = [
-    "Development Status :: 2 - Pre-alpha",
+    "Development Status :: 2 - Pre-Alpha",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: PyPy"
 ]
