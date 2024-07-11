@@ -83,7 +83,7 @@ zones:
   - id: 1
     name: Area de Servico
   - id: 2
-    name: Banho- [Scenario IFSEI Interface](#scenario-ifsei-interface)
+    name: Banho
 
 # Lights config
 lights:
