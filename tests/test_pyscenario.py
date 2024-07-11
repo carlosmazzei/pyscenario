@@ -173,7 +173,7 @@ def test_ifsei_async_update_light_state(
 ):
     """Test the async_update_light_state method of the IFSEI class."""
     ifsei = IFSEI()
-    ifsei.load_devices()
+    ifsei.load_devices("scenario_device_config.yaml")
     monkeypatch.setattr(ifsei, "async_set_zone_intensity", mock.AsyncMock())
     device_id = ifsei.device_manager.lights[0].unique_id
     event_loop.run_until_complete(
@@ -186,7 +186,7 @@ def test_ifsei_async_update_cover_state(
 ):
     """Test the async_update_cover_state method of the IFSEI class."""
     ifsei = IFSEI()
-    ifsei.load_devices()
+    ifsei.load_devices("scenario_device_config.yaml")
     monkeypatch.setattr(ifsei, "async_set_shader_state", mock.AsyncMock())
     device_id = ifsei.device_manager.covers[0].unique_id
     event_loop.run_until_complete(ifsei.async_update_cover_state(device_id, "1234"))
