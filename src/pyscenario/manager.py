@@ -293,7 +293,7 @@ class DeviceManager:
             for address in light.address:
                 if (
                     int(address["module"]) == module_number
-                    and address["channel"] == channel
+                    and int(address["channel"]) == channel
                 ):
                     address["state"] = str(state)
                     address_name = address["name"]

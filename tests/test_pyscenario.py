@@ -119,6 +119,14 @@ def test_ifsei_async_connect(mock_telnet_connection, event_loop):
     assert result
 
 
+def test_ifsei_valid_config():
+    """Test the ifsei init method with valid configuration."""
+    valid_config = NetworkConfiguration(
+        host="192.168.15.1", tcp_port=2300, protocol=pyscenario.Protocol.TCP
+    )
+    assert valid_config is not None
+
+
 def test_ifsei_async_connect_invalid_config():
     """Test the async_connect method with invalid configuration."""
     invalid_config = NetworkConfiguration(host="invalid", tcp_port=-1)

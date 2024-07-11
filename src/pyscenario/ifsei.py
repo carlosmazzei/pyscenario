@@ -146,8 +146,8 @@ class IFSEI:
 
     def _validate_network_config(self, network_config: NetworkConfiguration) -> bool:
         """Validate the network configuration."""
-        IPv4Address(network_config)
-        if not (0 <= network_config.tcp_port <= 65535):
+        IPv4Address(network_config.host)
+        if not (0 <= int(network_config.tcp_port) <= 65535):
             raise ValueError("Invalid TCP port") from None
         if network_config.protocol not in [Protocol.TCP, Protocol.UDP]:
             raise ValueError("Invalid protocol") from None
@@ -189,6 +189,10 @@ class IFSEI:
                 client_factory=self._create_client,
             )
 
+            self.connection = (reader, writer)
+            self.process_task = asyncio.create_task(self._async_process_responses())
+            return True
+
         except (ConnectionRefusedError, TimeoutError) as e:
             logger.error(
                 "Failed to connect to %s:%s: %s.",
@@ -197,10 +201,6 @@ class IFSEI:
                 e,
             )
             return False
-        else:
-            self.connection = (reader, writer)
-            self.process_task = asyncio.create_task(self._async_process_responses())
-            return True
 
     async def async_close(self) -> None:
         """Asynchronously close the client connection."""
@@ -241,15 +241,13 @@ class IFSEI:
         """Asynchronously attempt to reconnect when the connection is lost."""
         logger.info("Start reconnect loop")
         while True:
-            try:
-                await self.async_connect()
-            except (TimeoutError, ConnectionError):
-                logger.error("Reconnection attempt failed. Waiting for 10s")
-                await asyncio.sleep(10)
-            else:
+            if await self.async_connect():
                 logger.info("Connection reestablished to ifsei")
                 self._reconnect_task = None
                 break
+            else:
+                logger.error("Reconnection attempt failed. Waiting for 10s")
+                await asyncio.sleep(10)
 
     async def async_send_command(self, command: str) -> None:
         """
