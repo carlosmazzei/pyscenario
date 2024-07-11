@@ -48,7 +48,8 @@ To connect to an IFSEI device, you need to create an IFSEI instance with the app
 
 ```python
 
-# Create a NetworkConfiguration object with the IP address, and port numbers for command and data channels, and protocol
+# Create a NetworkConfiguration object with the IP address, and port numbers for 
+# command and data channels, and protocol
 network_configuration = NetworkConfiguration("192.168.1.20", 28000, 23000, Protocol.TCP)
 
 # Create an IFSEI instance with the network configuration
@@ -83,18 +84,6 @@ zones:
     name: Area de Servico
   - id: 2
     name: Banho- [Scenario IFSEI Interface](#scenario-ifsei-interface)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [Supported devices](#supported-devices)
-    - [Devices config file](#devices-config-file)
-      - [Light](#light)
-      - [Shades / Covers](#shades--covers)
-  - [Message reception and processing](#message-reception-and-processing)
-    - [Connection handling](#connection-handling)
-    - [Device updates](#device-updates)
-  - [Example](#example)
-  - [Contributing](#contributing)
-  - [Contact](#contact)
 
 # Lights config
 lights:
