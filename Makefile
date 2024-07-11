@@ -21,8 +21,3 @@ docs:
 
 build: docs
 	poetry build
-
-# deactivated by default to prevent accidental uploads
-publish: test clean build
-	echo "NOT uploading to PyPI. You need to uncomment the command in the Makefile."
-#	poetry run python -mtwine upload dist/* --verbose

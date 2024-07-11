@@ -24,7 +24,7 @@ RESPONSE_TERMINATOR = ">"
 BUFFER_SIZE = 1024
 RETRY_DELAY = 5  # Delay in seconds before retrying connection
 IFSEI_ATTR_SEND_DELAY = 0.2  # Delay in seconds between messages
-DEVICE_FILE = "device_config.yaml"
+DEVICE_FILE = "scenario_device_config.yaml"
 
 ERROR_CODES = {
     "E1": "Buffer overflow on input. Too many characters were sent without sending the <CR> character.",

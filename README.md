@@ -5,235 +5,225 @@
 [![PyPI version](https://badge.fury.io/py/pyscenario.svg)](https://pypi.org/project/pyscenario/)
 [![Documentation Status](https://readthedocs.org/projects/pyscenario/badge/?version=latest)](https://pyscenario.readthedocs.io/en/latest/?badge=latest)
 
-Python Scenario Automation contains a library to interface with Scenario IFSEI Classic for home automation.
+Python Scenario Automation contains a library to interface with Scenario IFSEI Classic for home automation. This library was designed and tested with IFSEI version: **Ver 04.12.15 - NS 00.00.00 - DS 05.02**.
 
-Original repository: [https://github.com/carlosmazzei/pyscenario](https://github.com/carlosmazzei/pyscenario)
+## Table of Contents
 
-## Linting and Testing
+- [Scenario IFSEI Interface](#scenario-ifsei-interface)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+  - [Usage](#usage)
+    - [Supported devices](#supported-devices)
+    - [Devices config file](#devices-config-file)
+      - [Light](#light)
+      - [Shades / Covers](#shades--covers)
+  - [Message reception and processing](#message-reception-and-processing)
+    - [Connection handling](#connection-handling)
+    - [Device updates](#device-updates)
+  - [Example](#example)
+  - [Contributing](#contributing)
+  - [Contact](#contact)
 
-### Locally on every commit
+## Installation
 
-On every commit, some code formatting and checking tools are run by
-[pre-commit](https://pre-commit.com/).
-
-The test pipeline is configured in the
-[.pre-commit-config.yaml](.pre-commit-config.yaml).
-
-**Note:** you *must* run `poetry run pre-commit install` everytime you clone your
-git repository. Else, the pre-commit hooks won't be run automatically.
-
-### Running tests locally
-
-On your local machine, you can run tests by running `make test`.
-
-This uses [Tox](https://tox.wiki/en/latest/) to run tests for a variety
-of Python versions.
-
-As a prerequisite you need to install all those Python version, e.g., with
-[pyenv](https://github.com/pyenv/pyenv).
-
-To configure the Python versions under test, edit the [tox.ini](tox.ini).
-
-### With Github actions
-
-After every push to Github, the [cicd.yaml](.github/workflows/cicd.yaml)
-workflow is run. It runs the tests in the [tests](tests) folder for a bunch
-of Python versions.
-
-It also uploads the code coverage report to [codecov](https://codecov.io).
-
-**Note:** for private repositories you need to acquire a token from codecov
-and configure in the `cicd.yaml` workflow file and in Github secrets.
-
-To configure which Python versions are tested, edit the `python-version`
-list in the `cicd.yaml` workflow file.
-
-## How to release to PyPI
-
-You can upload the package either from your local machine via twine, or
-by using Github actions.
-
-The following instructions guide you through the process of releasing to the actual,
-official PyPI.
-
-Further down, there are instructions to release to the PyPI test server, or to custom
-Python Package indexes.
-
-### Release with Github actions
-
-To make a release via Github actions, you need to create a release in
-Github. When the release is published, the build-n-publish job in the
-[cicd](.github/workflows/cicd.yaml) workflow
-is run.
-
-To create a release in Github you need to create a tag.
-
-For this project it is necessary that the tag matches the version number.
-E.g., for version `1.2.3` the tag must be `1.2.3`.
-
-#### Prerequisites
-
-1. Create an API token in the
-   [PyPI account settings](https://pypi.org/manage/account/).
-   If you don't have a PyPI account yet, create one. *Do not close the
-   page right away, you will never see the token again!*
-
-   **Note:** before you upload the package for the first time, you can
-   only create a global api token with access to all your packages. It is
-   *highly* recommended to replace it with a package-specific token after
-   you have published your package for the first time.
-2. In the [Github repository settings](https://github.com/carlosmazzei/pyscenario/settings/environments),
-   create a new environment named `production`. If you are the only
-   contributor, you can leave all settings at the default.
-3. Under [Secrets -> actions](https://github.com/carlosmazzei/pyscenario/settings/secrets/actions),
-   create a new secret named `PYPI_API_TOKEN` and copy the token from PyPI
-   as value.
-
-#### Create a release and publish the package to PyPI
-
-1. Make sure the `name` variable in your [pyproject.toml](pyproject.toml) is correct.
-   **This will be the name of your package on PyPI!**
-2. update the version number in the [pyproject.toml](pyproject.toml).
-3. create a matching tag on your local machine and push it to the
-   Github repository:
-
-   ```bash
-   git tag 1.2.3
-   git push --tags
-   ```
-
-4. In [Github actions](https://github.com/carlosmazzei/pyscenario/actions)
-   make sure that the test workflow succeeds.
-5. In the Github [release tab](https://github.com/carlosmazzei/pyscenario/releases)
-   click "Draft a new release". Fill in the form. When you click publish,
-   the `publish-to-pypi` workflow is run.
-
-   It checks that the tag matches the version number and then builds and
-   publishes the package to
-   [PyPI](https://pypi.org/project/pyscenario/).
-
-### Upload from the local machine (not recommended)
-
-[twine](https://twine.readthedocs.io/en/stable/) allows to upload a package
-from your local machine to PyPI.
-
-### Prerequisites
-
-You need a PyPI API token. See prerequisites for the Github actions above
-(you don't need to perform any actions on Github when using twine, so you
-only need to perform step 1).
-
-#### Configuration
-
-The PyPI credentials must be configured either via a configuration file
-or via environment variables.
-See the [twine documentation](https://twine.readthedocs.io/en/stable/#configuration)
-for details.
-
-Since we are using an api token to authenticate with PyPI, the username
-must be set to `__token__`, and the password is the actual token.
-
-When using the PyPI test server, the repository url must be set to
-`https://test.pypi.org/legacy/`.
-
-### Usage
-
-The `publish` target in the [Makefile](Makefile) calls twine to upload
-a package to PyPI.
-
-**Note:** the upload command is deactivated by default to prevent accidental
-uploads. You need to manually uncomment it before the first release.
-
-Here are the necessary steps:
-
-1. update the version number in the [pyproject.toml](pyproject.toml)
-2. run `make publish`.
-
-## Using a custom package repository
-
-While testing the release process of a public package, it is a good idea to first
-release to the PyPI Test server.
-
-Sometimes, especially in corporate settings, it is necessary to upload packages to
-a custom, often private, package repository.
-
-### Releasing
-
-To release to a server other than the standard PyPI, you need to specify the respective
-repository URL when uploading.
-
-#### Releasing to a custom repo with twine
-
-With twine, you can specify the repository URL via the `--repository-url` parameter.
-
-In the special case of the PyPI Test server, you can also specify
-`--repository testpypi`.
+To install the package, use pip, which is the package installer for Python:
 
 ```bash
-# for Test PyPI
-twine upload --repository testpypi dist/*
-
-# for any custom repository
-twine upload --repository-url <URL> dist/*
+pip install pyscenario
 ```
 
-In the context of this project, you can modify the `publish` target in the
-[Makefile](Makefile).
+This command will download and install the latest version of pyscenario from the Python Package Index (PyPI).
 
-See also [Using TestPyPI](https://packaging.python.org/en/latest/guides/using-testpypi/).
+## Usage
 
-#### Releasing to a custom repo with Github actions
+To use the package, first import the necessary modules:
 
-To release to a custom repo with Github actions, you can follow the same process
-as described above for the default PyPI. The only necessary change is adding a
-`repository_url` entry to the `publish-to-pypi.yaml` file:
+```python
+import pyscenario
+from pyscenario.ifsei import IFSEI
+from pyscenario.network import NetworkConfiguration, Protocol
+```
+
+To connect to an IFSEI device, you need to create an IFSEI instance with the appropriate network configuration. Here’s how you can do that:
+
+```python
+
+# Create a NetworkConfiguration object with the IP address, and port numbers for command and data channels, and protocol
+network_configuration = NetworkConfiguration("192.168.1.20", 28000, 23000, Protocol.TCP)
+
+# Create an IFSEI instance with the network configuration
+ifsei = IFSEI(network_config=network_configuration)
+
+# Load devices from a device configuration file
+ifsei.load_devices("device_config.yaml")
+
+# Connect to the IFSEI device asynchronously
+await ifsei.async_connect()
+
+```
+
+### Supported devices
+
+The `IFSEI.load_devices()` function will populate three entities: zones, lights, and shades (covers). Each of these entities represents a different type of device that can be managed by the IFSEI interface. All entities are optional, but they provide a structure to the configuration and management of the home automation system.
+
+> Device Manager supports only Light and Shade/Cover devices.
+
+The file `config_schema.py` contains the valid schema for the yaml file. This file gets validated using Voluptuous lib.
+
+### Devices config file
+
+To properly load and interact with devices, they must be defined in a YAML configuration file. Without this configuration, the integration will have no devices to interact with. The default file name is `scenario_device_config.yaml`.
+
+**Example of device config file:**
 
 ```yaml
-- name: Publish package to TestPyPI
-  uses: pypa/gh-action-pypi-publish@release/v1
-  with:
-    user: __token__password: ${{ secrets.TEST_PYPI_API_TOKEN }}repository_url: https://test.pypi.org/legacy/
+# Zone config
+zones:
+  - id: 1
+    name: Area de Servico
+  - id: 2
+    name: Banho- [Scenario IFSEI Interface](#scenario-ifsei-interface)
+  - [Installation](#installation)
+  - [Usage](#usage)
+    - [Supported devices](#supported-devices)
+    - [Devices config file](#devices-config-file)
+      - [Light](#light)
+      - [Shades / Covers](#shades--covers)
+  - [Message reception and processing](#message-reception-and-processing)
+    - [Connection handling](#connection-handling)
+    - [Device updates](#device-updates)
+  - [Example](#example)
+  - [Contributing](#contributing)
+  - [Contact](#contact)
+
+# Lights config
+lights:
+  - id: 1
+    name: Bancada
+    zone: 2
+    isRGB: false
+    address:
+      - name: w
+        module: 4
+        channel: 5
+        isDimmeable: false
+  - id: 2
+    name: Sanca
+    zone: 1
+    isRGB: false
+    address:
+      - name: w
+        module: 3
+        channel: 8
+        isDimmeable: false
+# Shades config
+shades:
+  - id: 1
+    name: Cortina
+    zone: 2
+    address1: "0002"
+    address2: "0003"
+    address3: "0004"
+  - id: 2
+    name: Persiana LD
+    zone: 1
+    address1: "0005"
+    address2: "0006"
+    address3: "0007"
 ```
 
-For use with Test PyPI you need an account and an API token from [test.pypi.org](https://test.pypi.org). Note that in the example above, that token is assumed to
-be stored in the `TEST_PYPI_API_TOKEN` secret in Github.
+#### Light
 
-See also [Advanced release management](https://github.com/marketplace/actions/pypi-publish#advanced-release-management)
-in the documentation of the `pypi-publish` Github action.
+Light devices support both dimmable `(isDimmeable: bool)` and RGB `(isRGB: bool)` configurations. Each light should have at least one address, usually the `w` for the white channel. RGB lights should also have `r`, `g`, and `b` addresses.
 
-### Installing from a custom package repository
+The update callback should support `**kwargs` with the following parameters:
 
-If you have uploaded your package to a custom repository, install tools such as
-pip and poetry won't find it by default. You need to configure them to use the
-custom repository.
+- IFSEI_ATTR_AVAILABLE: availability of the device
+- IFSEI_ATTR_BRIGHTNESS: white channel with value from 0 (off) to 100 (max brightness)
+- IFSEI_ATTR_RED: red channel with value from 0 (off) to 100 (max brightness)
+- IFSEI_ATTR_GREEN: green channel with value from 0 (off) to 100 (max brightness)
+- IFSEI_ATTR_BLUE: blue channel with value from 0 (off) to 100 (max brightness)
 
-#### Installing from a custom package repository with pip
-
-With pip, you need to specify it via the `--index-url` parameter. Often you want to
-install custom packages from the private repo, but public dependencies from the regular
-PyPI. In that case, specify the PyPI repo via `--extra-index-url`.
-
-For example:
-
-`pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyscenario`
-
-**Beware the
-[security implications](https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610)!**
-
-#### Installing from a custom package repository with poetry
-
-To install packages from a custom repository, add this to your `pyproject.toml`:
-
-```toml
-[[tool.poetry.source]]
-name = "foo"
-url = "https://test.pypi.org/simple/"
-secondary = true  # if True, poetry will also search the default PyPI repository
-default = true  # if True, poetry will never search the default PyPI repository
+```python
+def light_update_callback(self, **kwargs: Any):
+    brightness = kwargs.pop(IFSEI_ATTR_BRIGHTNESS, None)
+    available = kwargs.pop(IFSEI_ATTR_AVAILABLE, None)
+    red = kwargs.pop(IFSEI_ATTR_RED, None)
+    green = kwargs.pop(IFSEI_ATTR_GREEN, None)
+    blue = kwargs.pop(IFSEI_ATTR_BLUE, None)
+    print(f"Light Update - Brightness: {brightness}, Available: {available}, Red: {red}, Green: {green}, Blue: {blue}")
 ```
 
-For advanced configuration and authentication, take a look at the
-[poetry documentation](https://python-poetry.org/docs/repositories/#install-dependencies-from-a-private-repository).
+#### Shades / Covers
+
+Shade devices typically have three addresses. The first corresponds to the up command, the second to stop, and the third to down.
+
+The update callback should support **kwargs with the following parameters:
+
+- IFSEI_ATTR_AVAILABLE: Availability of the device
+- IFSEI_ATTR_COMMAND: Command for the device (IFSEI_COVER_DOWN, IFSEI_COVER_UP, or IFSEI_COVER_STOP)
+- IFSEI_ATTR_STATE: State of the scene (IFSEI_ATTR_SCENE_ACTIVE or IFSEI_ATTR_SCENE_INACTIVE)
+
+```python
+def shade_update_callback(self, **kwargs: Any):
+    available = kwargs.pop(IFSEI_ATTR_AVAILABLE, None)
+    command = kwargs.pop(IFSEI_ATTR_COMMAND, None)
+    state = kwargs.pop(IFSEI_ATTR_STATE, None)
+    print(f"Shade Update - Available: {available}, Command: {command}, State: {state}")
+```
+
+## Message reception and processing
+
+The IFSEI class creates two queues: one for receiving messages and another for sending messages. These queues are also used by the telnet client to process incoming and outgoing messages. All messages are processed by the IFSEI class, and the IFSEITelnetClient puts and gets messages from these queues.
+
+It is possible to set a delay between messages to be sent. This can be done by calling the set_send_delay function with a time in seconds:
+
+```python
+ifsei.set_send_delay(0.2)
+```
+
+### Connection handling
+
+After the first connection is established, the IFSEI instance will try to reconnect in a separate monitoring thread if the connection is lost. This thread is created after the `on_connection_lost` is called.
+
+Upon the first connection, the device should respond with `*IFSEION`, indicating that it is available. All devices in the device manager with registered callbacks will be notified.
+
+To close the connection and stop all read, send, and processing tasks, call:
+
+```python
+await ifsei.async_close()
+```
+
+### Device updates
+
+It is possible to add subscribers to each device so that they can be notified when specific state changes occur. Device availability and state status are sent to the callback when received by the IFSEI instance.
+
+**Example of adding a subscriber:**
+
+```python
+light.add_subscriber(self.update_callback)
+
+def async_update_callback(self, **kwargs: Any):
+  """Update callback."""
+  brightness = kwargs.pop(IFSEI_ATTR_BRIGHTNESS, None)
+  available = kwargs.pop(IFSEI_ATTR_AVAILABLE, None)
+  red = kwargs.pop(IFSEI_ATTR_RED, None)
+  green = kwargs.pop(IFSEI_ATTR_GREEN, None)
+  blue = kwargs.pop(IFSEI_ATTR_BLUE, None)
+
+  if available is not None:
+      self._attr_available = available
+      _LOGGER.debug("Set device %s availability to %s", self.name, available)
+
+```
+
+## Example
+
+This library is used in Home Assistant custom integration for Scenario Automation.
+
+## Contributing
+
+If you feel you can contribute to the project, please read the contribution guide at [CONTRIBUTING](CONTRIBUTING.md).
 
 ## Contact
 

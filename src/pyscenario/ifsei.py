@@ -171,18 +171,23 @@ class IFSEI:
         with open(config_file, encoding="utf-8") as file:
             return json.load(file)
 
-    def load_devices(self) -> None:
-        """
-        Load the device manager from the configuration file.
+    def load_devices(self, file: str | None) -> None:
+        """Load the device manager from the configuration file.
+
+        Args:
+            file (str | None): Path to the configuration file. If None,
+            it will be loaded from the current directory.
 
         This method loads the device manager using the DEVICE_FILE constant.
         """
-        current_module_path = __file__
-        absolute_module_path = os.path.abspath(current_module_path)
-        current_directory = os.path.dirname(absolute_module_path)
-        target_file_name = DEVICE_FILE
-        target_file_path = os.path.join(current_directory, target_file_name)
-        self.device_manager = DeviceManager.from_config(target_file_path)
+        if file is None:
+            current_module_path = __file__
+            absolute_module_path = os.path.abspath(current_module_path)
+            current_directory = os.path.dirname(absolute_module_path)
+            target_file_name = DEVICE_FILE
+            file = os.path.join(current_directory, target_file_name)
+
+        self.device_manager = DeviceManager.from_config(file)
 
     def _validate_network_config(self, network_config: NetworkConfiguration) -> bool:
         """Validate the network configuration."""
