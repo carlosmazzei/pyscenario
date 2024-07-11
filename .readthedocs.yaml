@@ -6,14 +6,15 @@ build:
     python: "3.12"
   jobs:
     post_create_environment:
-    # Install poetry
-    - curl -sSL https://install.python-poetry.org | python -
-    # export requirements
-    - $HOME/.poetry/bin/poetry export --with docs -o requirements.txt
+      # Install poetry
+      # https://python-poetry.org/docs/#installing-manually
+      - pip install poetry
+    post_install:
+      # Install dependencies with 'docs' dependency group
+      # https://python-poetry.org/docs/managing-dependencies/#dependency-groups
+      # VIRTUAL_ENV needs to be set manually for now.
+      # See https://github.com/readthedocs/readthedocs.org/pull/11152/
+      - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH poetry install --with docs
 
-python:
-  system_packages: true
-  install:
-  - requirements: requirements.txt
-  - method: pip
-    path: .
+sphinx:
+  configuration: docs/source/conf.py
