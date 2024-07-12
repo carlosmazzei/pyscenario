@@ -153,6 +153,18 @@ class IFSEI:
             raise ValueError("Invalid protocol") from None
         return True
 
+    def set_reconnect_options(self, reconnect: bool, delay: float) -> None:
+        """
+        Set the reconnect options for the IFSEI device.
+
+        Args:
+            reconnect (bool): Whether to reconnect or not.
+            delay (float): Delay in seconds between reconnect attempts.
+        """
+        self.network_config.reconnect = reconnect
+        self.network_config.reconnect_delay = delay
+        logger.info("Reconnect options set: reconnect=%s, delay=%s", reconnect, delay)
+
     def set_send_delay(self, delay: float) -> None:
         """
         Set the delay for sending commands.
