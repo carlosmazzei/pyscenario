@@ -202,11 +202,11 @@ class IFSEI:
             )
 
             if self.network_config.reconnect:
-                self.reconnect()
+                self._reconnect()
 
             return False
 
-    def reconnect(self) -> None:
+    def _reconnect(self) -> None:
         """Start reconnect task."""
         if self.is_closing:
             logger.info("Closing, do not start reconnect thread")
@@ -244,7 +244,7 @@ class IFSEI:
     def on_connection_lost(self) -> None:
         """Lost connection callback."""
         logger.info("Lost connection to ifsei")
-        self.reconnect()
+        self._reconnect()
 
     async def _async_reconnect(self) -> None:
         """Asynchronously attempt to reconnect when the connection is lost."""
