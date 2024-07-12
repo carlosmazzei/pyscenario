@@ -200,7 +200,23 @@ class IFSEI:
                 self.network_config.tcp_port,
                 e,
             )
+
+            if self.network_config.reconnect:
+                self.reconnect()
+
             return False
+
+    def reconnect(self) -> None:
+        """Start reconnect task."""
+        if self.is_closing:
+            logger.info("Closing, do not start reconnect thread")
+            return
+
+        if self._reconnect_task is None:
+            logger.info("Reconnect loop not running")
+            self.connection = None
+            self._reconnect_task = asyncio.create_task(self._async_reconnect())
+            self.set_is_connected(False)
 
     async def async_close(self) -> None:
         """Asynchronously close the client connection."""
@@ -228,14 +244,7 @@ class IFSEI:
     def on_connection_lost(self) -> None:
         """Lost connection callback."""
         logger.info("Lost connection to ifsei")
-        if self.is_closing:
-            logger.info("Closing, do not start reconnect thread")
-            return
-
-        if self._reconnect_task is None:
-            self.connection = None
-            self._reconnect_task = asyncio.create_task(self._async_reconnect())
-            self.set_is_connected(False)
+        self.reconnect()
 
     async def _async_reconnect(self) -> None:
         """Asynchronously attempt to reconnect when the connection is lost."""
@@ -247,7 +256,7 @@ class IFSEI:
                 break
             else:
                 logger.error("Reconnection attempt failed. Waiting for 10s")
-                await asyncio.sleep(10)
+                await asyncio.sleep(self.network_config.reconnect_delay)
 
     async def async_send_command(self, command: str) -> None:
         """

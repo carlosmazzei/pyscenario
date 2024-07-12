@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from enum import Enum
 from importlib.metadata import version
 
+from pyscenario.const import IFSEI_RECONNECT_DELAY
+
 __version__ = version("pyscenario")
 
 
@@ -21,6 +23,8 @@ class NetworkConfiguration:
     tcp_port: int = 28000
     udp_port: int = 25200
     protocol: Protocol = Protocol.TCP
+    reconnect: bool = True
+    reconnect_delay: float = IFSEI_RECONNECT_DELAY
 
 
 @dataclass
