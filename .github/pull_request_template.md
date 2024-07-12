@@ -1,6 +1,6 @@
 <!-- If this pull request fixes an issue, add "Fixes #NNN" with the issue number. -->
 
-# **Explain how this PR changes pyscenario
+# **Explain how this PR changes pyscenario**
 
 [Description of the PR changes]
 
