@@ -1,10 +1,10 @@
 <!-- If this pull request fixes an issue, add "Fixes #NNN" with the issue number. -->
 
-### Explain how this PR changes pyscenario
+# **Explain how this PR changes pyscenario
 
 [Description of the PR changes]
 
-### Types of changes
+## Types of changes
 <!--- What types of changes does your code introduce? Put an `x` in all the boxes that apply: -->
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)

@@ -22,7 +22,7 @@ COVER_DEVICES = "covers"
 
 RESPONSE_TERMINATOR = ">"
 BUFFER_SIZE = 1024
-RETRY_DELAY = 5  # Delay in seconds before retrying connection
+IFSEI_RECONNECT_DELAY = 10.0  # Delay in seconds before retrying connection
 IFSEI_ATTR_SEND_DELAY = 0.2  # Delay in seconds between messages
 DEVICE_FILE = "scenario_device_config.yaml"
 
