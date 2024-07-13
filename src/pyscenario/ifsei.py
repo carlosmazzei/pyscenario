@@ -237,6 +237,16 @@ class IFSEI:
             await self._telnetclient.async_close()
             self.connection = None
 
+        if self.process_task is not None:
+            self.process_task.cancel()
+            self.process_task = None
+            logger.info("Process task cancelled")
+
+        if self._reconnect_task is not None:
+            self._reconnect_task.cancel()
+            self._reconnect_task = None
+            logger.info("Reconnect task cancelled")
+
     def _create_client(self, **kwds: dict[str, Any]):
         """
         Create a telnet client using the factory.
@@ -267,8 +277,12 @@ class IFSEI:
                 self._reconnect_task = None
                 break
             else:
-                logger.error("Reconnection attempt failed. Waiting for 10s")
+                logger.error(
+                    "Reconnection attempt failed. Waiting for %s seconds",
+                    self.network_config.reconnect_delay,
+                )
                 await asyncio.sleep(self.network_config.reconnect_delay)
+        logger.info("Reconnect loop ended")
 
     async def async_send_command(self, command: str) -> None:
         """
