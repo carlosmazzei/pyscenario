@@ -30,6 +30,7 @@ from .const import (
     IFSEI_ATTR_GREEN,
     IFSEI_ATTR_RED,
     IFSEI_ATTR_SEND_DELAY,
+    QUEUE_MAX_SIZE,
 )
 
 logger = logging.getLogger(__name__)
@@ -74,8 +75,8 @@ class IFSEI:
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         # Adding queues
-        send_queue: Queue = Queue(100)
-        receive_queue: Queue = Queue(100)
+        send_queue: Queue = Queue(QUEUE_MAX_SIZE)
+        receive_queue: Queue = Queue(QUEUE_MAX_SIZE)
         self.queue_manager = QueueManager(send_queue, receive_queue)
 
         # Adding tasks

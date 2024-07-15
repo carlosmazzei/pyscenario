@@ -5,7 +5,9 @@
 [![PyPI version](https://badge.fury.io/py/pyscenario.svg)](https://pypi.org/project/pyscenario/)
 [![Documentation Status](https://readthedocs.org/projects/pyscenario/badge/?version=latest)](https://pyscenario.readthedocs.io/en/latest/?badge=latest)
 
-Python Scenario Automation contains a library to interface with Scenario IFSEI Classic for home automation. This library was designed and tested with IFSEI version: **Ver 04.12.15 - NS 00.00.00 - DS 05.02**.
+Python Scenario Automation contains a library to interface with Scenario IFSEI Classic for home automation.
+
+> **NOTE:** This library was designed and tested with IFSEI version *Ver 04.12.15 - NS 00.00.00 - DS 05.02*.
 
 ## Table of Contents
 
