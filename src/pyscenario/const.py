@@ -21,6 +21,7 @@ LIGHT_DEVICES = "lights"
 COVER_DEVICES = "covers"
 
 RESPONSE_TERMINATOR = ">"
+QUEUE_MAX_SIZE = 100
 BUFFER_SIZE = 1024
 IFSEI_RECONNECT_DELAY = 10.0  # Delay in seconds before retrying connection
 IFSEI_ATTR_SEND_DELAY = 0.2  # Delay in seconds between messages

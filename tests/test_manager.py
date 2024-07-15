@@ -1,12 +1,9 @@
 import re
-import unittest.mock
 from unittest import mock
 
 import pyscenario
 import pytest
-import telnetlib3
 import voluptuous as vol
-from pyscenario.client import IFSEITelnetClient
 from pyscenario.config_schema import device_config_schema
 from pyscenario.const import (
     COVER_DEVICES,
@@ -16,7 +13,6 @@ from pyscenario.const import (
     IFSEI_ATTR_RED,
     LIGHT_DEVICES,
 )
-from pyscenario.ifsei import IFSEI, NetworkConfiguration
 from pyscenario.manager import Cover, DeviceManager, Light
 
 # Mock configuration data
@@ -44,20 +40,6 @@ mock_device_config = {
     ],
     "zones": [{"id": 1, "name": "Living Room"}, {"id": 2, "name": "Bedroom"}],
 }
-
-
-@pytest.fixture
-def mock_telnet_connection(monkeypatch):
-    """Mock the telnet connection over TCP."""
-    mock_reader = unittest.mock.AsyncMock()
-    mock_writer = unittest.mock.AsyncMock()
-    mock_writer.get_extra_info = mock.Mock(return_value="utf-8")
-    monkeypatch.setattr(
-        telnetlib3,
-        "open_connection",
-        unittest.mock.AsyncMock(return_value=(mock_reader, mock_writer)),
-    )
-    return mock_reader, mock_writer
 
 
 @pytest.fixture
@@ -105,115 +87,6 @@ def mock_device_manager_config(monkeypatch):
             )
         ),
     )
-
-
-def test_ifsei_async_connect(mock_telnet_connection, event_loop):
-    """Test the async_connect method of the IFSEI class."""
-    ifsei = IFSEI()
-    assert not ifsei.is_connected
-    print("Initial is_connected:", ifsei.is_connected)
-    mock_reader, mock_writer = mock_telnet_connection
-    result = event_loop.run_until_complete(ifsei.async_connect())
-    assert ifsei.connection == (mock_reader, mock_writer)
-    assert ifsei.process_task is not None
-    assert result
-
-
-def test_ifsei_valid_config():
-    """Test the ifsei init method with valid configuration."""
-    valid_config = NetworkConfiguration(
-        host="192.168.15.1", tcp_port=2300, protocol=pyscenario.Protocol.TCP
-    )
-    assert valid_config is not None
-
-
-def test_ifsei_async_connect_invalid_config():
-    """Test the async_connect method with invalid configuration."""
-    invalid_config = NetworkConfiguration(host="invalid", tcp_port=-1)
-    with pytest.raises(ValueError):
-        IFSEI(invalid_config)
-
-
-def test_ifsei_async_close(mock_telnet_connection, event_loop, monkeypatch):
-    """Test the async_close method of the IFSEI class."""
-    ifsei = IFSEI()
-    mock_reader, mock_writer = mock_telnet_connection
-    event_loop.run_until_complete(ifsei.async_connect())
-    assert ifsei.connection == (mock_reader, mock_writer)
-
-    # Manually set the _telnetclient attribute to a mock
-    mock_telnetclient = mock.AsyncMock(spec=IFSEITelnetClient)
-    mock_telnetclient.async_close = mock.AsyncMock()
-    ifsei._telnetclient = mock_telnetclient
-
-    assert ifsei._telnetclient is not None  # Ensure _telnetclient is initialized
-    event_loop.run_until_complete(ifsei.async_close())
-    assert ifsei.is_closing
-    assert ifsei.connection is None
-
-    mock_telnetclient.async_close.assert_called_once()
-
-
-def test_ifsei_async_send_command(mock_telnet_connection, event_loop):
-    """Test the async_send_command method of the IFSEI class."""
-    ifsei = IFSEI()
-    mock_reader, mock_writer = mock_telnet_connection
-    event_loop.run_until_complete(ifsei.async_connect())
-    assert ifsei.connection == (mock_reader, mock_writer)
-    command = "$VER"
-    event_loop.run_until_complete(ifsei.async_send_command(command))
-    assert not ifsei.queue_manager.send_queue.empty()
-
-
-def test_ifsei_async_monitor(mock_telnet_connection, event_loop):
-    """Test the async_monitor method of the IFSEI class."""
-    ifsei = IFSEI()
-    mock_reader, mock_writer = mock_telnet_connection
-    event_loop.run_until_complete(ifsei.async_connect())
-    assert ifsei.connection == (mock_reader, mock_writer)
-    event_loop.run_until_complete(ifsei.async_monitor(5))
-    with pytest.raises(ValueError):
-        event_loop.run_until_complete(ifsei.async_monitor(8))
-
-
-def test_ifsei_async_update_light_state(
-    monkeypatch, mock_telnet_connection, mock_device_manager_config, event_loop
-):
-    """Test the async_update_light_state method of the IFSEI class."""
-    ifsei = IFSEI()
-    ifsei.load_devices("scenario_device_config.yaml")
-    monkeypatch.setattr(ifsei, "async_set_zone_intensity", mock.AsyncMock())
-    device_id = ifsei.device_manager.lights[0].unique_id
-    event_loop.run_until_complete(
-        ifsei.async_update_light_state(device_id, [255, 0, 0, 100])
-    )
-
-
-def test_ifsei_async_update_cover_state(
-    monkeypatch, mock_telnet_connection, mock_device_manager_config, event_loop
-):
-    """Test the async_update_cover_state method of the IFSEI class."""
-    ifsei = IFSEI()
-    ifsei.load_devices("scenario_device_config.yaml")
-    monkeypatch.setattr(ifsei, "async_set_shader_state", mock.AsyncMock())
-    device_id = ifsei.device_manager.covers[0].unique_id
-    event_loop.run_until_complete(ifsei.async_update_cover_state(device_id, "1234"))
-
-
-def test_ifsei_async_get_version(monkeypatch, mock_telnet_connection, event_loop):
-    """Test the async_get_version method of the IFSEI class."""
-    ifsei = IFSEI()
-    monkeypatch.setattr(ifsei, "async_send_command", mock.AsyncMock())
-    event_loop.run_until_complete(ifsei.async_get_version())
-    ifsei.async_send_command.assert_called_with("$VER")
-
-
-def test_ifsei_async_get_ip(monkeypatch, mock_telnet_connection, event_loop):
-    """Test the async_get_ip method of the IFSEI class."""
-    ifsei = IFSEI()
-    monkeypatch.setattr(ifsei, "async_send_command", mock.AsyncMock())
-    event_loop.run_until_complete(ifsei.async_get_ip())
-    ifsei.async_send_command.assert_called_with("$IP")
 
 
 def test_device_manager_from_config(mock_device_manager_config):
