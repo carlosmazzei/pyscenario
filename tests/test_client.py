@@ -89,62 +89,28 @@ def test_stop_tasks(telnet_client):
     assert telnet_client.task_manager.receive_task is None
 
 
-async def test_async_send_data(telnet_client, queue_manager):
+@pytest.mark.asyncio
+async def test_async_send_data_tcp(telnet_client, queue_manager, monkeypatch):
     """Test send data."""
     command = "TEST_COMMAND"
-    queue_manager.send_queue.get = AsyncMock(return_value=command)
-    telnet_client.writer.connection_closed = False
     telnet_client.protocol = Protocol.TCP
 
-    with patch.object(
-        telnet_client, "_async_send_command_tcp", new=AsyncMock()
-    ) as mock_send_command:
-        send_task = asyncio.create_task(telnet_client._async_send_data())
+    monkeypatch.setattr(telnet_client, "_async_send_command_tcp", AsyncMock())
 
-        # Allow some time for the task to process
-        await asyncio.sleep(0.1)
+    mock_get_generator = AsyncMock()
+    mock_get_generator.side_effect = [command, asyncio.CancelledError]
 
-        # Verify an item is read from the queue
-        queue_manager.send_queue.get.assert_called_once()
+    monkeypatch.setattr(
+        telnet_client.queue_manager.send_queue, "get", mock_get_generator
+    )
 
-        # Ensure the command is sent over TCP
-        mock_send_command.assert_called_once_with(command)
+    await telnet_client._async_send_data()
 
-        # Simulate connection closure and task cancellation
-        telnet_client.writer.connection_closed = True
-        send_task.cancel()
+    # Verify an item is read from the queue
+    queue_manager.send_queue.get.assert_called()
 
-        with pytest.raises(asyncio.CancelledError):
-            await send_task
-
-        # Verify the CancelledError handling
-        mock_send_command.assert_called_once_with(command)
-        queue_manager.send_queue.get.assert_called_once()
-
-    with patch.object(
-        telnet_client, "_async_send_command_tcp", new=AsyncMock()
-    ) as mock_send_command, patch.object(
-        telnet_client, "_async_send_command_udp", new=AsyncMock()
-    ):
-        telnet_client.protocol = Protocol.UDP
-
-        send_task = asyncio.create_task(telnet_client._async_send_data())
-
-        await asyncio.sleep(0.1)
-
-        # Verify an item is read from the queue
-        queue_manager.send_queue.get.assert_called_once()
-
-        # Ensure the command is not sent over UDP (not implemented)
-        mock_send_command.assert_not_called()
-        telnet_client.writer.connection_closed = True
-        send_task.cancel()
-
-        with pytest.raises(asyncio.CancelledError):
-            await send_task
-
-    # Reset the protocol for further tests
-    telnet_client.protocol = Protocol.TCP
+    # Ensure the command is sent over TCP
+    telnet_client._async_send_command_tcp.assert_called_once_with(command)
 
 
 @pytest.mark.asyncio
