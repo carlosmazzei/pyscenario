@@ -140,7 +140,7 @@ def test_device_manager_async_handle_zone_state_change(
 
 @pytest.mark.asyncio
 async def test_device_manager_async_handle_scene_state_change(
-    monkeypatch, mock_device_manager_config, event_loop
+    monkeypatch, mock_device_manager_config
 ):
     """Test handling scene state change in DeviceManager."""
     manager = DeviceManager.from_config("device_config.yaml")

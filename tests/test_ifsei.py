@@ -230,6 +230,7 @@ async def test_ifsei_async_close(mock_telnet_connection, monkeypatch, ifsei_inst
     # Manually set the _telnetclient attribute to a mock
     mock_telnetclient = mock.AsyncMock(spec=IFSEITelnetClient)
     ifsei._telnetclient = mock_telnetclient
+    ifsei._reconnect_task = mock.AsyncMock()
 
     await ifsei.async_close()
     assert ifsei.is_closing

@@ -10,7 +10,6 @@ import asyncio
 import json
 import logging
 import os
-import socket
 from asyncio import Queue, Task
 from ipaddress import IPv4Address
 from typing import Any
@@ -72,7 +71,7 @@ class IFSEI:
 
         self.name = "Scenario IFSEI"
         self.connection: tuple[TelnetReader, TelnetWriter] | None = None
-        self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.udp_socket = None  # socket.socket(socket.AF_INET, socket.SOCK_DGRAM) / UDP Not implemented
 
         # Adding queues
         send_queue: Queue = Queue(QUEUE_MAX_SIZE)

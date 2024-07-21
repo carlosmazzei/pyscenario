@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from unittest.mock import AsyncMock, MagicMock, patch
+import types
+from unittest.mock import AsyncMock, MagicMock, create_autospec, patch
 
 import pytest
 from pyscenario import Protocol, QueueManager
@@ -70,14 +71,15 @@ async def test_async_start_tasks(telnet_client):
         receive_data_coro = calls[1][0][0]
 
         # Check that the correct coroutines were passed to create_task
-        assert isinstance(send_data_coro, type(telnet_client._async_send_data()))
-        assert isinstance(receive_data_coro, type(telnet_client._async_receive_data()))
+        assert isinstance(send_data_coro, types.CoroutineType)
+        assert isinstance(receive_data_coro, types.CoroutineType)
 
 
-def test_stop_tasks(telnet_client):
+@pytest.mark.asyncio
+async def test_stop_tasks(telnet_client):
     """Test stop taks."""
-    send_task = AsyncMock(spec=asyncio.Task)
-    receive_task = AsyncMock(spec=asyncio.Task)
+    send_task = create_autospec(asyncio.Task, instance=True)
+    receive_task = create_autospec(asyncio.Task, instance=True)
     telnet_client.task_manager.send_task = send_task
     telnet_client.task_manager.receive_task = receive_task
 
@@ -119,7 +121,7 @@ async def test_async_send_command_tcp(telnet_client):
     command = "TEST_COMMAND"
 
     # Mock the write and drain methods
-    telnet_client.writer.write = AsyncMock()
+    telnet_client.writer.write = MagicMock()
     telnet_client.writer.drain = AsyncMock()
 
     # Test the normal execution
