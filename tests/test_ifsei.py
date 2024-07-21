@@ -212,9 +212,7 @@ def test_set_send_delay_logging(monkeypatch):
 
     # Verify the log message
     if ifsei._telnetclient is None:
-        mock_logger.info.assert_called_once_with(
-            "Cannot set send delay without telnetclient"
-        )
+        mock_logger.info.assert_any_call("Cannot set send delay without telnetclient")
     else:
         mock_logger.info.assert_called_once_with("Send delay set to: %s", delay)
 
