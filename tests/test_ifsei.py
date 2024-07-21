@@ -6,7 +6,12 @@ import pytest
 import telnetlib3
 from pyscenario import NetworkConfiguration, Protocol, QueueManager
 from pyscenario.client import IFSEITelnetClient
-from pyscenario.const import IFSEI_ATTR_RED
+from pyscenario.const import (
+    IFSEI_ATTR_BLUE,
+    IFSEI_ATTR_BRIGHTNESS,
+    IFSEI_ATTR_GREEN,
+    IFSEI_ATTR_RED,
+)
 from pyscenario.ifsei import IFSEI
 from pyscenario.manager import Cover, DeviceManager, Light
 
@@ -25,7 +30,12 @@ def mock_device_manager_config(monkeypatch):
                         name="Light 1",
                         zone="Living Room",
                         is_rgb=True,
-                        address=[{"name": IFSEI_ATTR_RED, "module": 1, "channel": 1}],
+                        address=[
+                            {"name": IFSEI_ATTR_RED, "module": 1, "channel": 1},
+                            {"name": IFSEI_ATTR_GREEN, "module": 1, "channel": 1},
+                            {"name": IFSEI_ATTR_BLUE, "module": 1, "channel": 1},
+                            {"name": IFSEI_ATTR_BRIGHTNESS, "module": 1, "channel": 1},
+                        ],
                     )
                 ],
                 covers=[
@@ -278,6 +288,19 @@ async def test_ifsei_async_update_light_state(
 
 
 @pytest.mark.asyncio
+async def test_ifsei_async_update_light_state_with_wrong_colors(
+    monkeypatch, mock_telnet_connection, mock_device_manager_config, ifsei_instance
+):
+    """Test the async_update_light_state method of the IFSEI class."""
+    ifsei = ifsei_instance
+    ifsei.load_devices("scenario_device_config.yaml")
+    device_id = ifsei.device_manager.lights[0].unique_id
+
+    with pytest.raises(ValueError):
+        await ifsei.async_update_light_state(device_id, [255, 0, 0])
+
+
+@pytest.mark.asyncio
 async def test_ifsei_async_update_cover_state(
     monkeypatch, mock_telnet_connection, mock_device_manager_config, ifsei_instance
 ):
@@ -397,9 +420,7 @@ def test_ifsei_load_config(monkeypatch, mock_config_file, mock_config_data):
     config = IFSEI._load_config(mock_config_file)
     assert config == mock_config_data
 
-    mock_logger.info.assert_called_once_with(
-        "Reading from log file: %s", mock_config_file
-    )
+    mock_logger.info.assert_any_call("Reading from log file: %s", mock_config_file)
 
 
 def test_ifsei_from_config(mock_config_file, mock_config_data):
@@ -553,4 +574,37 @@ async def test_async_handle_scene_response_without_device_manager(ifsei_instance
         # Assert the log message for missing device manager
         mock_logger.info.assert_any_call(
             "Cannot handle scene response (no device manager found)"
+        )
+
+
+def test_set_is_connected_with_device_manager(ifsei_instance):
+    """Test set_is_connected with a valid device manager."""
+    ifsei_instance.device_manager = mock.MagicMock(spec=DeviceManager)
+    with mock.patch("pyscenario.ifsei.logger") as mock_logger:
+        ifsei_instance.set_is_connected(True)
+
+        # Assert the connection status is set
+        assert ifsei_instance.is_connected is True
+
+        # Assert the correct log message
+        mock_logger.info.assert_any_call("Set ifsei availability to: %s", True)
+
+        # Assert that notify_subscriber was called with correct parameters
+        ifsei_instance.device_manager.notify_subscriber.assert_any_call(
+            available="True"
+        )
+
+
+def test_set_is_connected_without_device_manager(ifsei_instance):
+    """Test set_is_connected without a device manager."""
+    ifsei_instance.device_manager = None
+    with mock.patch("pyscenario.ifsei.logger") as mock_logger:
+        ifsei_instance.set_is_connected(False)
+
+        # Assert the connection status is set
+        assert ifsei_instance.is_connected is False
+
+        # Assert the correct log message
+        mock_logger.info.assert_any_call(
+            "Cannot set device availability (no device manager found)"
         )

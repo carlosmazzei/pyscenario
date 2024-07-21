@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyscenario"
-version = "0.1.5"
+version = "0.1.6"
 description = "Python Scenario Automation contains a library to interface with Scenario IFSEI Classic for home automation."
 authors = ["Carlos Mazzei <carlos.mazzei@gmail.com>"]
 license = "Apache-2.0"
