@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 import telnetlib3
-from pyscenario import NetworkConfiguration, Protocol
+from pyscenario import NetworkConfiguration, Protocol, QueueManager
 from pyscenario.client import IFSEITelnetClient
 from pyscenario.const import IFSEI_ATTR_RED
 from pyscenario.ifsei import IFSEI
@@ -466,3 +466,93 @@ async def test_reconnect_when_not_closing_and_no_task_running(
     mock_create_task.assert_called_once()
     assert mock_create_task.call_args[0][0].__name__ == "_async_reconnect"
     ifsei_instance.set_is_connected.assert_called_once_with(False)
+
+
+def test_create_client(ifsei_instance):
+    """Test the create_client method of the IFSEI class."""
+    mock_queue_manager = mock.Mock(spec=QueueManager)
+    mock_callback = mock.Mock()
+    ifsei_instance.queue_manager = mock_queue_manager
+    ifsei_instance.on_connection_lost = mock_callback
+    kwds = {"encoding": "utf-8"}
+
+    client = ifsei_instance._create_client(**kwds)
+    assert isinstance(client, IFSEITelnetClient)
+
+
+@pytest.mark.asyncio
+async def test_async_handle_zone_response_with_device_manager(ifsei_instance):
+    """Test _async_handle_zone_response with a valid device manager."""
+    response = "*Z0101L100"
+    ifsei_instance.device_manager = mock.MagicMock(spec=DeviceManager)
+    ifsei_instance.device_manager.async_handle_zone_state_change = mock.AsyncMock()
+
+    with mock.patch("pyscenario.ifsei.logger") as mock_logger:
+        await ifsei_instance._async_handle_zone_response(response)
+
+        # Assert the correct log message
+        mock_logger.info.assert_any_call("Zone %s state: %s intensity: %s", 1, 1, 100)
+
+        # Assert that async_handle_zone_state_change was called with correct parameters
+        ifsei_instance.device_manager.async_handle_zone_state_change.assert_awaited_once_with(
+            1, 1, 100
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_handle_zone_response_without_device_manager(ifsei_instance):
+    """Test _async_handle_zone_response without a device manager."""
+    response = "*Z0202L050"
+    ifsei_instance.device_manager = None
+
+    with mock.patch("pyscenario.ifsei.logger") as mock_logger:
+        await ifsei_instance._async_handle_zone_response(response)
+
+        # Assert the correct log message for the zone state
+        mock_logger.info.assert_any_call("Zone %s state: %s intensity: %s", 2, 2, 50)
+
+        # Assert the log message for missing device manager
+        mock_logger.info.assert_any_call(
+            "Cannot handle zone response (no device manager found)"
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_handle_scene_response_with_device_manager(ifsei_instance):
+    """Test _async_handle_scene_response with a valid device manager."""
+    response = "*C12341"
+    ifsei_instance.device_manager = mock.MagicMock(spec=DeviceManager)
+    ifsei_instance.device_manager.async_handle_scene_state_change = mock.AsyncMock()
+
+    with mock.patch("pyscenario.ifsei.logger") as mock_logger:
+        await ifsei_instance._async_handle_scene_response(response)
+
+        # Assert the correct log message
+        mock_logger.info.assert_any_call(
+            "Scene response: %s, address: %s, state: %s", response, "1234", "1"
+        )
+
+        # Assert that async_handle_scene_state_change was called with correct parameters
+        ifsei_instance.device_manager.async_handle_scene_state_change.assert_awaited_once_with(
+            "1234", "1"
+        )
+
+
+@pytest.mark.asyncio
+async def test_async_handle_scene_response_without_device_manager(ifsei_instance):
+    """Test _async_handle_scene_response without a device manager."""
+    response = "*C56780"
+    ifsei_instance.device_manager = None
+
+    with mock.patch("pyscenario.ifsei.logger") as mock_logger:
+        await ifsei_instance._async_handle_scene_response(response)
+
+        # Assert the correct log message for the scene response
+        mock_logger.info.assert_any_call(
+            "Scene response: %s, address: %s, state: %s", response, "5678", "0"
+        )
+
+        # Assert the log message for missing device manager
+        mock_logger.info.assert_any_call(
+            "Cannot handle scene response (no device manager found)"
+        )
