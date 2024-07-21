@@ -138,7 +138,8 @@ def test_device_manager_async_handle_zone_state_change(
     callback.assert_called_once()
 
 
-def test_device_manager_async_handle_scene_state_change(
+@pytest.mark.asyncio
+async def test_device_manager_async_handle_scene_state_change(
     monkeypatch, mock_device_manager_config, event_loop
 ):
     """Test handling scene state change in DeviceManager."""
@@ -146,9 +147,7 @@ def test_device_manager_async_handle_scene_state_change(
     cover = manager.covers[0]
     callback = mock.Mock()
     monkeypatch.setattr(cover, "callback_", callback)
-    event_loop.run_until_complete(
-        manager.async_handle_scene_state_change(cover.up, "1")
-    )
+    await manager.async_handle_scene_state_change(cover.up, "1")
     callback.assert_called_once()
 
 

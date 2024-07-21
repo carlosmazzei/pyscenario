@@ -11,20 +11,18 @@ Python Scenario Automation contains a library to interface with Scenario IFSEI C
 
 ## Table of Contents
 
-- [Scenario IFSEI Interface](#scenario-ifsei-interface)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [Supported devices](#supported-devices)
-    - [Devices config file](#devices-config-file)
-      - [Light](#light)
-      - [Shades / Covers](#shades--covers)
-  - [Message reception and processing](#message-reception-and-processing)
-    - [Connection handling](#connection-handling)
-    - [Device updates](#device-updates)
-  - [Example](#example)
-  - [Contributing](#contributing)
-  - [Contact](#contact)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Supported devices](#supported-devices)
+  - [Devices config file](#devices-config-file)
+    - [Light](#light)
+    - [Shades / Covers](#shades--covers)
+- [Message reception and processing](#message-reception-and-processing)
+  - [Connection handling](#connection-handling)
+  - [Device updates](#device-updates)
+- [Example](#example)
+- [Contributing](#contributing)
+- [Contact](#contact)
 
 ## Installation
 

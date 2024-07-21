@@ -123,7 +123,7 @@ async def test_async_send_command_tcp(telnet_client):
     telnet_client.writer.drain = AsyncMock()
 
     # Test the normal execution
-    await telnet_client._async_send_command_tcp(command)
+    _ = await telnet_client._async_send_command_tcp(command)
     telnet_client.writer.write.assert_called_once_with(command + "\r")
     telnet_client.writer.drain.assert_awaited_once()
 
