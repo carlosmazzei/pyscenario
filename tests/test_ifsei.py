@@ -301,6 +301,20 @@ async def test_ifsei_async_update_light_state_with_wrong_colors(
 
 
 @pytest.mark.asyncio
+async def test_ifsei_async_update_light_state_without_device_manager(
+    monkeypatch, mock_telnet_connection, ifsei_instance
+):
+    """Test the async_update_light_state method of the IFSEI class."""
+    ifsei = ifsei_instance
+    ifsei.device_manager = None
+    with mock.patch("pyscenario.ifsei.logger") as mock_logger:
+        await ifsei.async_update_light_state("01", [255, 0, 0, 255])
+        mock_logger.error.assert_any_call(
+            "Cannot update light state (no device manager found)"
+        )
+
+
+@pytest.mark.asyncio
 async def test_ifsei_async_update_cover_state(
     monkeypatch, mock_telnet_connection, mock_device_manager_config, ifsei_instance
 ):
