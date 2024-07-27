@@ -6,6 +6,7 @@ for handling device states and configurations.
 
 """
 
+import logging
 from collections.abc import Callable
 
 import yaml
@@ -20,6 +21,8 @@ from .const import (
     IFSEI_COVER_UP,
     LIGHT_DEVICES,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Device:
@@ -239,8 +242,13 @@ class DeviceManager:
                 )
                 covers.append(cover)
 
+            logger.info(
+                "Device configuration loaded successfully from: %s", config_file
+            )
+
             return cls(lights, covers, zones)
         except FileNotFoundError:
+            logger.error("Config file not found: %s", config_file)
             return None
 
     def get_devices_by_type(self, device_type: str) -> list[Light] | list[Cover] | None:

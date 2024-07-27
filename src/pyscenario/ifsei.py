@@ -10,7 +10,6 @@ import asyncio
 import json
 import logging
 import os
-import socket
 from asyncio import Queue, Task
 from ipaddress import IPv4Address
 from typing import Any
@@ -72,7 +71,7 @@ class IFSEI:
 
         self.name = "Scenario IFSEI"
         self.connection: tuple[TelnetReader, TelnetWriter] | None = None
-        self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.udp_socket = None  # socket.socket(socket.AF_INET, socket.SOCK_DGRAM) / UDP Not implemented
 
         # Adding queues
         send_queue: Queue = Queue(QUEUE_MAX_SIZE)
@@ -175,7 +174,9 @@ class IFSEI:
         """
         if self._telnetclient is not None:
             self._telnetclient.send_delay = delay
-        logger.info("Send delay set to: %s", delay)
+            logger.info("Send delay set to: %s", delay)
+        else:
+            logger.info("Cannot set send delay without telnetclient")
 
     async def async_connect(self) -> bool:
         """
@@ -230,6 +231,9 @@ class IFSEI:
             self.connection = None
             self._reconnect_task = asyncio.create_task(self._async_reconnect())
             self.set_is_connected(False)
+        else:
+            check_done = self._reconnect_task.done()
+            logger.info("Reconnect task already running. Check done: %s", check_done)
 
     async def async_close(self) -> None:
         """Asynchronously close the client connection."""
@@ -296,18 +300,20 @@ class IFSEI:
 
     async def _async_process_responses(self):
         """Asynchronously process responses from the IFSEI device."""
-        try:
-            logger.info("Starting response processing loop")
-            while True:
+        logger.info("Starting response processing loop")
+        while True:
+            try:
                 response = await self.queue_manager.receive_queue.get()
                 await self._async_handle_response(response)
-        except asyncio.CancelledError:
-            logger.info("Process responses task cancelled")
-        except RuntimeError:
-            logger.info("Runtime error in response processing loop")
-        except Exception as e:
-            logger.error("Error processing responses: %s", e)
-            raise
+            except asyncio.CancelledError:
+                logger.info("Process responses task cancelled")
+                break
+            except RuntimeError:
+                logger.info("Runtime error in response processing loop")
+                break
+            except Exception as e:
+                logger.error("Error processing responses: %s", e)
+                raise e
 
     async def _async_handle_response(self, response: str) -> None:
         """

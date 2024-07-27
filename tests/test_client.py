@@ -1,12 +1,14 @@
 import asyncio
 import logging
-from unittest.mock import AsyncMock, MagicMock, patch
+import types
+from unittest.mock import AsyncMock, MagicMock, create_autospec, patch
 
 import pytest
 from pyscenario import Protocol, QueueManager
 from pyscenario.client import (
-    IFSEITelnetClient,  # Adjust the import based on your module's name
+    IFSEITelnetClient,
 )
+from pyscenario.const import RESPONSE_TERMINATOR
 from telnetlib3 import TelnetReader, TelnetWriter
 
 logging.basicConfig(level=logging.DEBUG)
@@ -70,14 +72,15 @@ async def test_async_start_tasks(telnet_client):
         receive_data_coro = calls[1][0][0]
 
         # Check that the correct coroutines were passed to create_task
-        assert isinstance(send_data_coro, type(telnet_client._async_send_data()))
-        assert isinstance(receive_data_coro, type(telnet_client._async_receive_data()))
+        assert isinstance(send_data_coro, types.CoroutineType)
+        assert isinstance(receive_data_coro, types.CoroutineType)
 
 
-def test_stop_tasks(telnet_client):
+@pytest.mark.asyncio
+async def test_stop_tasks(telnet_client):
     """Test stop taks."""
-    send_task = AsyncMock(spec=asyncio.Task)
-    receive_task = AsyncMock(spec=asyncio.Task)
+    send_task = create_autospec(asyncio.Task, instance=True)
+    receive_task = create_autospec(asyncio.Task, instance=True)
     telnet_client.task_manager.send_task = send_task
     telnet_client.task_manager.receive_task = receive_task
 
@@ -119,11 +122,11 @@ async def test_async_send_command_tcp(telnet_client):
     command = "TEST_COMMAND"
 
     # Mock the write and drain methods
-    telnet_client.writer.write = AsyncMock()
+    telnet_client.writer.write = MagicMock()
     telnet_client.writer.drain = AsyncMock()
 
     # Test the normal execution
-    await telnet_client._async_send_command_tcp(command)
+    _ = await telnet_client._async_send_command_tcp(command)
     telnet_client.writer.write.assert_called_once_with(command + "\r")
     telnet_client.writer.drain.assert_awaited_once()
 
@@ -222,3 +225,62 @@ async def test_async_close(telnet_client):
     telnet_client.reader.close.assert_called_once()
     assert telnet_client.task_manager.send_task is None
     assert telnet_client.task_manager.receive_task is None
+
+
+@pytest.mark.asyncio
+async def test_async_read_until_prompt_tcp(telnet_client, monkeypatch):
+    """Test _async_read_until_prompt with TCP protocol."""
+    response = f"TEST_RESPONSE{RESPONSE_TERMINATOR}"
+    telnet_client.reader = AsyncMock()
+    telnet_client.reader.read = AsyncMock(side_effect=[char for char in response])
+    telnet_client.reader.connection_closed = False
+
+    result = await telnet_client._async_read_until_prompt()
+
+    assert result == "TEST_RESPONSE"
+    telnet_client.reader.read.assert_called_with(1)
+
+
+@pytest.mark.asyncio
+async def test_async_read_until_prompt_tcp_connection_closed(
+    telnet_client, monkeypatch
+):
+    """Test _async_read_until_prompt when TCP connection is closed."""
+    telnet_client.reader = AsyncMock()
+    telnet_client.reader.read = AsyncMock(return_value="T")
+    telnet_client.reader.connection_closed = True
+
+    result = await telnet_client._async_read_until_prompt()
+
+    assert result == "T"
+    telnet_client.reader.read.assert_called_with(1)
+
+
+@pytest.mark.asyncio
+async def test_async_read_until_prompt_udp(telnet_client):
+    """Test _async_read_until_prompt with UDP protocol."""
+    telnet_client.protocol = Protocol.UDP
+    with pytest.raises(NotImplementedError):
+        await telnet_client._async_read_until_prompt()
+
+
+@pytest.mark.asyncio
+async def test_async_read_until_prompt_cancelled_error(telnet_client):
+    """Test _async_read_until_prompt handling asyncio.CancelledError."""
+    telnet_client.reader = AsyncMock()
+    telnet_client.reader.read = AsyncMock(side_effect=asyncio.CancelledError)
+    telnet_client.reader.connection_closed = False
+
+    with pytest.raises(asyncio.CancelledError):
+        await telnet_client._async_read_until_prompt()
+
+
+@pytest.mark.asyncio
+async def test_async_read_until_prompt_exception(telnet_client):
+    """Test _async_read_until_prompt handling generic exception."""
+    telnet_client.reader = AsyncMock()
+    telnet_client.reader.read = AsyncMock(side_effect=Exception("Read error"))
+    telnet_client.reader.connection_closed = False
+
+    with pytest.raises(Exception, match="Read error"):
+        await telnet_client._async_read_until_prompt()
