@@ -205,7 +205,7 @@ class IFSEITelnetClient(TelnetClient):
                     or self.reader.connection_closed
                 ):
                     break
-            return response.strip()[:-2]
+            return response.strip(RESPONSE_TERMINATOR)
         except asyncio.exceptions.CancelledError:
             logger.info("Data receiving loop cancelled")
             raise
