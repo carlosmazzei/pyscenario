@@ -4,6 +4,7 @@ from unittest import mock
 import pyscenario
 import pytest
 import voluptuous as vol
+import yaml
 from pyscenario.config_schema import device_config_schema
 from pyscenario.const import (
     COVER_DEVICES,
@@ -40,6 +41,46 @@ mock_device_config = {
     ],
     "zones": [{"id": 1, "name": "Living Room"}, {"id": 2, "name": "Bedroom"}],
 }
+
+
+mock_invalid_config = {
+    "lights": [
+        {
+            "id": 1,
+            "name": "Light 1",
+            "zone": 1,
+            "isRGB": True,
+            "address": [
+                {"name": "red", "module": "invalid", "channel": 1, "isDimmeable": True}
+            ],
+        }
+    ]
+}
+
+
+@pytest.fixture
+def mock_open_valid_config():
+    """Mock opening valid config file."""
+    with mock.patch(
+        "builtins.open", mock.mock_open(read_data=yaml.dump(mock_device_config))
+    ):
+        yield
+
+
+@pytest.fixture
+def mock_open_invalid_config():
+    """Mock opening invalid config file."""
+    with mock.patch(
+        "builtins.open", mock.mock_open(read_data=yaml.dump(mock_invalid_config))
+    ):
+        yield
+
+
+@pytest.fixture
+def mock_open_missing_config():
+    """Mock opening missing config file."""
+    with mock.patch("builtins.open", side_effect=FileNotFoundError):
+        yield
 
 
 @pytest.fixture
@@ -101,6 +142,28 @@ def test_device_manager_from_invalid_config(monkeypatch):
     """Test DeviceManager creation from an invalid config file."""
     monkeypatch.setattr(DeviceManager, "from_config", mock.Mock(return_value=None))
     manager = DeviceManager.from_config("invalid.yaml")
+    assert manager is None
+
+
+def test_device_manager_from_valid_config_file(mock_open_valid_config):
+    """Test DeviceManager creation from a valid config file."""
+    manager = DeviceManager.from_config("device_config.yaml")
+    assert manager is not None
+    assert len(manager.lights) == 1
+    assert len(manager.covers) == 1
+    assert manager.lights[0].unique_id == "1_living_room"
+    assert manager.covers[0].unique_id == "2_bedroom"
+
+
+def test_device_manager_from_invalid_config_file(mock_open_invalid_config):
+    """Test DeviceManager creation from an invalid config file."""
+    with pytest.raises(vol.Invalid):
+        DeviceManager.from_config("device_config.yaml")
+
+
+def test_device_manager_from_missing_config_file(mock_open_missing_config):
+    """Test DeviceManager creation from a missing config file."""
+    manager = DeviceManager.from_config("non_existent_config.yaml")
     assert manager is None
 
 
