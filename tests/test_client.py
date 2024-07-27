@@ -230,7 +230,7 @@ async def test_async_close(telnet_client):
 @pytest.mark.asyncio
 async def test_async_read_until_prompt_tcp(telnet_client, monkeypatch):
     """Test _async_read_until_prompt with TCP protocol."""
-    response = f"TEST_RESPONSE{RESPONSE_TERMINATOR}"
+    response = f"TEST_RESPONSE\n{RESPONSE_TERMINATOR}"
     telnet_client.reader = AsyncMock()
     telnet_client.reader.read = AsyncMock(side_effect=[char for char in response])
     telnet_client.reader.connection_closed = False
@@ -247,7 +247,7 @@ async def test_async_read_until_prompt_tcp_connection_closed(
 ):
     """Test _async_read_until_prompt when TCP connection is closed."""
     telnet_client.reader = AsyncMock()
-    telnet_client.reader.read = AsyncMock(return_value="T")
+    telnet_client.reader.read = AsyncMock(return_value=f"T\n{RESPONSE_TERMINATOR}")
     telnet_client.reader.connection_closed = True
 
     result = await telnet_client._async_read_until_prompt()
