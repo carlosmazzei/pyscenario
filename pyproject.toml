@@ -41,7 +41,7 @@ pytest-cov = "^5.0.0"
 tox = "^4.16.0"
 
 # deployment
-twine = "^4.0.2"
+twine = ">=4.0.2,<6.0.0"
 mypy = "^1.10.1"
 pytest-asyncio = "^0.23.7"
 
