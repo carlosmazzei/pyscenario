@@ -326,8 +326,7 @@ class IFSEI:
                 break
             except Exception as e:
                 logger.error("Error processing responses: %s", e)
-                # Handle or log the exception as appropriate
-                continue
+                break
 
     async def _async_handle_response(self, response: str) -> None:
         """
