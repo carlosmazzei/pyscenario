@@ -183,20 +183,17 @@ def test_device_manager_get_device_by_id(mock_device_manager_config):
     assert device is not None
 
 
-def test_device_manager_async_handle_zone_state_change(
-    monkeypatch, mock_device_manager_config, event_loop
+@pytest.mark.asyncio
+async def test_device_manager_async_handle_zone_state_change(
+    monkeypatch, mock_device_manager_config
 ):
     """Test handling zone state change in DeviceManager."""
     manager = DeviceManager.from_config("device_config.yaml")
     light = manager.lights[0]
     callback = mock.Mock()
     monkeypatch.setattr(light, "callback_", callback)
-    event_loop.run_until_complete(
-        manager.async_handle_zone_state_change(
-            int(light.address[0]["module"]),
-            light.address[0]["channel"],
-            100,
-        )
+    await manager.async_handle_zone_state_change(
+        int(light.address[0]["module"]), light.address[0]["channel"], 100
     )
     callback.assert_called_once()
 
