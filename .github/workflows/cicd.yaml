@@ -5,6 +5,10 @@ on: # events that trigger our pipeline: push on any branch and release creation
   release:
     types: [published]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   lint:
     strategy:
