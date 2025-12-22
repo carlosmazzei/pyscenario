@@ -18,7 +18,7 @@ classifiers = [
 python = "^3.12"
 
 # documentation
-voluptuous = ">=0.13.1,<0.16.0"
+voluptuous = ">=0.13.1,<0.17.0"
 telnetlib3 = "^2.0.4"
 asyncio = ">=3.4.3,<5.0.0"
 pyyaml = "^6.0.1"
