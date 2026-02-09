@@ -242,6 +242,20 @@ async def test_async_read_until_prompt_tcp(telnet_client, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_async_read_until_prompt_tcp_crlf(telnet_client):
+    """Test _async_read_until_prompt handles CRLF before the terminator."""
+    response = f"TEST_RESPONSE\r\n{RESPONSE_TERMINATOR}"
+    telnet_client.reader = AsyncMock()
+    telnet_client.reader.read = AsyncMock(side_effect=[char for char in response])
+    telnet_client.reader.connection_closed = False
+
+    result = await telnet_client._async_read_until_prompt()
+
+    assert result == "TEST_RESPONSE"
+    telnet_client.reader.read.assert_called_with(1)
+
+
+@pytest.mark.asyncio
 async def test_async_read_until_prompt_tcp_connection_closed(
     telnet_client, monkeypatch
 ):

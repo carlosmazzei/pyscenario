@@ -284,6 +284,9 @@ class DeviceManager:
         for device in self.lights:
             if device.unique_id == id:
                 return device
+        for device in self.covers:
+            if device.unique_id == id:
+                return device
         return None
 
     async def async_handle_zone_state_change(
