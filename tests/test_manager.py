@@ -181,6 +181,8 @@ def test_device_manager_get_device_by_id(mock_device_manager_config):
     manager = DeviceManager.from_config("device_config.yaml")
     device = manager.get_device_by_id(manager.lights[0].unique_id)
     assert device is not None
+    cover = manager.get_device_by_id(manager.covers[0].unique_id)
+    assert cover is not None
 
 
 @pytest.mark.asyncio

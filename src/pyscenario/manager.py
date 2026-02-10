@@ -281,9 +281,12 @@ class DeviceManager:
         -------
             Device | None: The device with the specified ID, or None if not found.
         """
-        for device in self.lights:
-            if device.unique_id == id:
-                return device
+        for light in self.lights:
+            if light.unique_id == id:
+                return light
+        for cover in self.covers:
+            if cover.unique_id == id:
+                return cover
         return None
 
     async def async_handle_zone_state_change(
