@@ -200,7 +200,10 @@ class IFSEITelnetClient(TelnetClient):
                 elif self.protocol == Protocol.UDP:
                     raise NotImplementedError
                 response += char
-                if response.endswith(RESPONSE_TERMINATOR) or self.reader.connection_closed:
+                if (
+                    response.endswith(RESPONSE_TERMINATOR)
+                    or self.reader.connection_closed
+                ):
                     break
             if response.endswith(RESPONSE_TERMINATOR):
                 response = response[: -len(RESPONSE_TERMINATOR)]
