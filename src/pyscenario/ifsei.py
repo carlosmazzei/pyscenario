@@ -173,6 +173,7 @@ class IFSEI:
         Args:
             delay (float): Delay in seconds.
         """
+        self._send_delay = delay
         if self._telnetclient is not None:
             self._telnetclient.send_delay = delay
             logger.info("Send delay set to: %s", delay)
@@ -274,6 +275,8 @@ class IFSEI:
         self._telnetclient = IFSEITelnetClient(
             self.queue_manager, self.on_connection_lost, **kwargs
         )
+        self._telnetclient.protocol = self.network_config.protocol
+        self._telnetclient.send_delay = self._send_delay
         return self._telnetclient
 
     def on_connection_lost(self) -> None:
