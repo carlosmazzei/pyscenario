@@ -546,6 +546,7 @@ class IFSEI:
         for device in self.device_manager.covers:
             if device.unique_id == device_id:
                 await self.async_set_shader_state(address)
+                return
 
     # Commands for the Scenario Classic-NET network
     async def async_change_scene(self, module_address: int, scene_number: int) -> None:
