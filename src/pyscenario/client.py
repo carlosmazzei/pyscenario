@@ -92,7 +92,7 @@ class IFSEITelnetClient(TelnetClient):
     async def _async_start_tasks(self):
         """Start the asynchronous tasks for sending and receiving data."""
         self._stop_tasks()
-        logger.info("Starting tasks.")
+        logger.debug("[protocol=%s] starting send/receive tasks", self.protocol.name)
         self.task_manager.send_task = asyncio.create_task(self._async_send_data())
         self.task_manager.receive_task = asyncio.create_task(self._async_receive_data())
 
@@ -102,34 +102,35 @@ class IFSEITelnetClient(TelnetClient):
             if self.task_manager.send_task is not None:
                 self.task_manager.send_task.cancel()
                 self.task_manager.send_task = None
-                logger.info("Send task cancel requested")
+                logger.debug("send task cancel requested")
         except asyncio.CancelledError:
-            logger.info("Send task already cancelled.")
+            logger.debug("send task already cancelled")
 
         try:
             if self.task_manager.receive_task is not None:
                 self.task_manager.receive_task.cancel()
                 self.task_manager.receive_task = None
-                logger.info("Receive task cancel requested")
+                logger.debug("receive task cancel requested")
         except asyncio.CancelledError:
-            logger.info("Receive task already cancelled.")
+            logger.debug("receive task already cancelled")
 
     async def _async_send_data(self):
         """Send data to the IFSEI device from the queue."""
         try:
-            logger.info("Starting data sending loop")
+            logger.debug("[protocol=%s] starting data sending loop", self.protocol.name)
             while True:
                 command = await self.queue_manager.send_queue.get()
+                logger.debug("[cmd=%s] dequeued, sending", command)
                 if self.protocol == Protocol.TCP:
                     await self._async_send_command_tcp(command)
                 elif self.protocol == Protocol.UDP:
                     raise NotImplementedError
                 if self.writer.connection_closed:
-                    logger.info("Closed connection, send data ending")
+                    logger.debug("[cmd=%s] writer closed, send loop ending", command)
                     break
                 await asyncio.sleep(self.send_delay)
         except asyncio.CancelledError:
-            logger.info("Send task cancelled")
+            logger.debug("send task cancelled")
 
     async def _async_send_command_tcp(self, command: str) -> None:
         """
@@ -144,13 +145,13 @@ class IFSEITelnetClient(TelnetClient):
             self.writer.write(command + "\r")
             await self.writer.drain()
         except ConnectionResetError:
-            logger.error("Connection reset")
+            logger.error("[cmd=%s] connection reset while sending", command)
             raise
         except Exception as e:
-            logger.error("Failed to send command %s over TCP: %s", command, e)
+            logger.error("[cmd=%s] failed to send (TCP): %s", command, e)
             raise
         else:
-            logger.info("Command sent (TCP): %s", command)
+            logger.debug("[cmd=%s] sent (TCP)", command)
 
     def _send_command_udp(self, command: str) -> None:
         """
@@ -171,16 +172,19 @@ class IFSEITelnetClient(TelnetClient):
     async def _async_receive_data(self):
         """Receive data from the IFSEI device."""
         try:
-            logger.info("Starting data receiving loop")
+            logger.debug(
+                "[protocol=%s] starting data receiving loop", self.protocol.name
+            )
             while True:
                 response = await self._async_read_until_prompt()
                 if response:
+                    logger.debug("[response=%s] enqueueing for processing", response)
                     await self.queue_manager.receive_queue.put(response)
                 if self.reader.connection_closed:
-                    logger.info("Closed connection, receive data ending")
+                    logger.debug("reader closed, receive loop ending")
                     break
         except Exception as e:
-            logger.error("Error receiving data: %s", e)
+            logger.error("error receiving data: %s", e)
             raise
 
     async def _async_read_until_prompt(self) -> str:
@@ -207,12 +211,15 @@ class IFSEITelnetClient(TelnetClient):
                     break
             if response.endswith(RESPONSE_TERMINATOR):
                 response = response[: -len(RESPONSE_TERMINATOR)]
-            return response.rstrip("\r\n")
+            response = response.rstrip("\r\n")
+            if response:
+                logger.debug("[response=%s] received (raw)", response)
+            return response
         except asyncio.exceptions.CancelledError:
-            logger.info("Data receiving loop cancelled")
+            logger.debug("data receiving loop cancelled")
             raise
         except Exception as e:
-            logger.error("Error reading data: %s", e)
+            logger.error("error reading data: %s", e)
             raise
 
     def connection_lost(self, exc: None | Exception, /) -> None:
@@ -224,6 +231,7 @@ class IFSEITelnetClient(TelnetClient):
         exc : None | Exception
             Exception that caused the connection loss.
         """
+        logger.debug("connection_lost callback fired (exc=%s)", exc)
         super().connection_lost(exc)
         self._stop_tasks()
         if self.on_connection_lost_callback is not None:
@@ -235,7 +243,7 @@ class IFSEITelnetClient(TelnetClient):
             self._stop_tasks()
             self.writer.close()
             self.reader.close()
-            logger.info("Disconnected from IFSEI")
+            logger.info("disconnected from IFSEI")
         except Exception as e:
-            logger.error("Failed to disconnect: %s", e)
+            logger.error("failed to disconnect: %s", e)
             raise

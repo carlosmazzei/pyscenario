@@ -171,7 +171,7 @@ def test_ifsei_set_reconnect_options_logging(monkeypatch):
 
     # Verify the log message
     mock_logger.info.assert_any_call(
-        "Reconnect options set: reconnect=%s, delay=%s", True, 15.0
+        "[reconnect=%s delay=%s] reconnect options set", True, 15.0
     )
 
 
@@ -187,7 +187,8 @@ def test_set_send_delay_no_telnetclient(monkeypatch):
 
     # Verify that the logger was called with the correct message
     mock_logger.warning.assert_called_once_with(
-        "Cannot set send delay without telnetclient"
+        "[delay=%s] cannot set send delay: telnetclient not initialized",
+        delay,
     )
 
 
@@ -207,7 +208,7 @@ def test_set_send_delay_with_telnetclient(monkeypatch):
     assert mock_telnetclient.send_delay == pytest.approx(delay, 0.1)
 
     # Verify that the logger was called with the correct message
-    mock_logger.info.assert_called_once_with("Send delay set to: %s", delay)
+    mock_logger.info.assert_called_once_with("[delay=%s] send delay updated", delay)
 
 
 def test_set_send_delay_logging(monkeypatch):
@@ -223,10 +224,11 @@ def test_set_send_delay_logging(monkeypatch):
     # Verify the log message
     if ifsei._telnetclient is None:
         mock_logger.warning.assert_any_call(
-            "Cannot set send delay without telnetclient"
+            "[delay=%s] cannot set send delay: telnetclient not initialized",
+            delay,
         )
     else:
-        mock_logger.info.assert_called_once_with("Send delay set to: %s", delay)
+        mock_logger.info.assert_called_once_with("[delay=%s] send delay updated", delay)
 
 
 @pytest.mark.asyncio
@@ -317,7 +319,8 @@ async def test_ifsei_async_update_light_state_without_device_manager(
     with mock.patch("pyscenario.ifsei.logger") as mock_logger:
         await ifsei.async_update_light_state("01", [255, 0, 0, 255])
         mock_logger.error.assert_any_call(
-            "Cannot update light state (no device manager found)"
+            "[device_id=%s] cannot update light state: device_manager not loaded",
+            "01",
         )
 
 
@@ -441,7 +444,9 @@ def test_ifsei_load_config(monkeypatch, mock_config_file, mock_config_data):
     config = IFSEI._load_config(mock_config_file)
     assert config == mock_config_data
 
-    mock_logger.info.assert_any_call("Reading from config file: %s", mock_config_file)
+    mock_logger.debug.assert_any_call(
+        "[config=%s] reading from config file", mock_config_file
+    )
 
 
 def test_ifsei_from_config(mock_config_file, mock_config_data):
@@ -465,7 +470,11 @@ async def test_reconnect_when_closing(monkeypatch, ifsei_instance):
 
     # Ensure no reconnect task is started
     assert ifsei_instance._reconnect_task is None
-    mock_logger.info.assert_any_call("Closing, do not start reconnect task")
+    mock_logger.debug.assert_any_call(
+        "[host=%s:%s] is_closing=True, not starting reconnect task",
+        ifsei_instance.network_config.host,
+        ifsei_instance.network_config.tcp_port,
+    )
 
 
 @pytest.mark.asyncio
@@ -505,7 +514,12 @@ async def test_reconnect_when_not_closing_and_no_task_running(
 
     # Ensure reconnect task is started
     assert ifsei_instance._reconnect_task is not None
-    mock_logger.info.assert_any_call("Starting reconnect task")
+    mock_logger.debug.assert_any_call(
+        "[host=%s:%s delay=%s] starting reconnect task",
+        ifsei_instance.network_config.host,
+        ifsei_instance.network_config.tcp_port,
+        ifsei_instance.network_config.reconnect_delay,
+    )
     mock_create_task.assert_called_once()
     assert mock_create_task.call_args[0][0].__name__ == "_async_reconnect"
     ifsei_instance.set_is_connected.assert_called_once_with(False)
@@ -534,8 +548,11 @@ async def test_async_handle_zone_response_with_device_manager(ifsei_instance):
         await ifsei_instance._async_handle_zone_response(response)
 
         # Assert the correct log message
-        mock_logger.info.assert_any_call(
-            "Zone response - Module: %s, Channel: %s, Intensity: %s", 1, 1, 100
+        mock_logger.debug.assert_any_call(
+            "[module=%02d channel=%02d intensity=%d] zone response parsed",
+            1,
+            1,
+            100,
         )
 
         # Assert that async_handle_zone_state_change was called with correct parameters
@@ -554,13 +571,18 @@ async def test_async_handle_zone_response_without_device_manager(ifsei_instance)
         await ifsei_instance._async_handle_zone_response(response)
 
         # Assert the correct log message for the zone state
-        mock_logger.info.assert_any_call(
-            "Zone response - Module: %s, Channel: %s, Intensity: %s", 2, 2, 50
+        mock_logger.debug.assert_any_call(
+            "[module=%02d channel=%02d intensity=%d] zone response parsed",
+            2,
+            2,
+            50,
         )
 
         # Assert the log message for missing device manager
         mock_logger.warning.assert_any_call(
-            "Cannot handle zone response (no device manager found)"
+            "[module=%02d channel=%02d] cannot handle zone response: device_manager not loaded",
+            2,
+            2,
         )
 
 
@@ -575,8 +597,8 @@ async def test_async_handle_scene_response_with_device_manager(ifsei_instance):
         await ifsei_instance._async_handle_scene_response(response)
 
         # Assert the correct log message
-        mock_logger.info.assert_any_call(
-            "Scene response - Address: %s, State: %s", "1234", "1"
+        mock_logger.debug.assert_any_call(
+            "[address=%s state=%s] scene response parsed", "1234", "1"
         )
 
         # Assert that async_handle_scene_state_change was called with correct parameters
@@ -595,13 +617,15 @@ async def test_async_handle_scene_response_without_device_manager(ifsei_instance
         await ifsei_instance._async_handle_scene_response(response)
 
         # Assert the correct log message for the scene response
-        mock_logger.info.assert_any_call(
-            "Scene response - Address: %s, State: %s", "5678", "0"
+        mock_logger.debug.assert_any_call(
+            "[address=%s state=%s] scene response parsed", "5678", "0"
         )
 
         # Assert the log message for missing device manager
         mock_logger.warning.assert_any_call(
-            "Cannot handle scene response (no device manager found)"
+            "[address=%s state=%s] cannot handle scene response: device_manager not loaded",
+            "5678",
+            "0",
         )
 
 
@@ -615,7 +639,12 @@ def test_set_is_connected_with_device_manager(ifsei_instance):
         assert ifsei_instance.is_connected is True
 
         # Assert the correct log message
-        mock_logger.info.assert_any_call("Set IFSEI availability to: %s", True)
+        mock_logger.info.assert_any_call(
+            "[available=%s host=%s:%s] IFSEI availability changed",
+            True,
+            ifsei_instance.network_config.host,
+            ifsei_instance.network_config.tcp_port,
+        )
 
         # Assert that notify_subscriber was called with correct parameters
         ifsei_instance.device_manager.notify_subscriber.assert_any_call(
@@ -634,5 +663,6 @@ def test_set_is_connected_without_device_manager(ifsei_instance):
 
         # Assert the correct log message
         mock_logger.warning.assert_any_call(
-            "Cannot set device availability (no device manager found)"
+            "[available=%s] cannot propagate availability: device_manager not loaded",
+            False,
         )
