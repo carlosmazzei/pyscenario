@@ -71,10 +71,27 @@ class Device:
         Args:
             callback_ (Callable[[], None]): The callback function.
         """
+        if self.callback_ is not None:
+            logger.debug(
+                "[device_id=%s name=%s] replacing existing subscriber",
+                self.unique_id,
+                self.name,
+            )
+        else:
+            logger.debug(
+                "[device_id=%s name=%s] subscriber added",
+                self.unique_id,
+                self.name,
+            )
         self.callback_ = callback_
 
     def remove_subscriber(self) -> None:
         """Remove the callback function."""
+        logger.debug(
+            "[device_id=%s name=%s] subscriber removed",
+            self.unique_id,
+            self.name,
+        )
         self.callback_ = None
 
 
@@ -208,6 +225,7 @@ class DeviceManager:
             DeviceManager | None: An instance of the DeviceManager class, or None if the file is not found.
         """
         try:
+            logger.debug("[config=%s] loading device configuration", config_file)
             with open(config_file, encoding="utf-8") as file:
                 data = yaml.safe_load(file)
 
@@ -215,6 +233,7 @@ class DeviceManager:
 
             zones_list = data.get("zones", [])
             zones = {zone["id"]: zone["name"] for zone in zones_list}
+            logger.debug("[zones=%d] parsed zones", len(zones))
 
             lights = []
             for light_data in data["lights"]:
@@ -229,6 +248,13 @@ class DeviceManager:
                     address=addresses,
                 )
                 lights.append(light)
+                logger.debug(
+                    "[device_id=%s type=light zone=%s is_rgb=%s addresses=%d] parsed",
+                    light.unique_id,
+                    light.zone,
+                    light.is_rgb,
+                    len(addresses),
+                )
 
             covers = []
             for covers_data in data["shades"]:
@@ -241,14 +267,26 @@ class DeviceManager:
                     down=str(covers_data["address3"]),
                 )
                 covers.append(cover)
+                logger.debug(
+                    "[device_id=%s type=cover zone=%s up=%s stop=%s down=%s] parsed",
+                    cover.unique_id,
+                    cover.zone,
+                    cover.up,
+                    cover.stop,
+                    cover.down,
+                )
 
             logger.info(
-                "Device configuration loaded successfully from: %s", config_file
+                "[config=%s lights=%d covers=%d zones=%d] devices loaded",
+                config_file,
+                len(lights),
+                len(covers),
+                len(zones),
             )
 
             return cls(lights, covers, zones)
         except FileNotFoundError:
-            logger.error("Config file not found: %s", config_file)
+            logger.error("[config=%s] config file not found", config_file)
             return None
 
     def get_devices_by_type(self, device_type: str) -> list[Light] | list[Cover] | None:
@@ -281,12 +319,16 @@ class DeviceManager:
         -------
             Device | None: The device with the specified ID, or None if not found.
         """
+        logger.debug("[device_id=%s] lookup", id)
         for light in self.lights:
             if light.unique_id == id:
+                logger.debug("[device_id=%s type=light] found", id)
                 return light
         for cover in self.covers:
             if cover.unique_id == id:
+                logger.debug("[device_id=%s type=cover] found", id)
                 return cover
+        logger.debug("[device_id=%s] not found", id)
         return None
 
     async def async_handle_zone_state_change(
@@ -300,18 +342,46 @@ class DeviceManager:
             channel (int): The channel number.
             state (int): The new state to set.
         """
+        matched = False
         for light in self.lights:
             for address in light.address:
                 if (
                     int(address["module"]) == module_number
                     and int(address["channel"]) == channel
                 ):
+                    matched = True
                     address["state"] = str(state)
                     address_name = address["name"]
+                    logger.debug(
+                        "[device_id=%s name=%s module=%02d channel=%02d attr=%s state=%s] zone state updated",
+                        light.unique_id,
+                        light.name,
+                        module_number,
+                        channel,
+                        address_name,
+                        state,
+                    )
 
                     if light.callback_ is not None:
                         kwargs = {address_name: state}
+                        logger.debug(
+                            "[device_id=%s kwargs=%s] dispatching callback",
+                            light.unique_id,
+                            kwargs,
+                        )
                         light.callback_(**kwargs)
+                    else:
+                        logger.debug(
+                            "[device_id=%s] no subscriber registered, skipping callback",
+                            light.unique_id,
+                        )
+        if not matched:
+            logger.warning(
+                "[module=%02d channel=%02d state=%s] zone state change has no matching light",
+                module_number,
+                channel,
+                state,
+            )
 
     async def async_handle_scene_state_change(
         self, change_address: str, state: str
@@ -324,8 +394,10 @@ class DeviceManager:
             state (str): The new state to set.
         """
         kwargs = {}
+        matched = False
         for cover in self.covers:
             if change_address in [cover.up, cover.down, cover.stop]:
+                matched = True
                 if change_address == cover.up:
                     kwargs = {
                         IFSEI_ATTR_COMMAND: IFSEI_COVER_UP,
@@ -342,8 +414,33 @@ class DeviceManager:
                         IFSEI_ATTR_STATE: state,
                     }
 
+                logger.debug(
+                    "[device_id=%s name=%s address=%s state=%s command=%s] scene state matched cover",
+                    cover.unique_id,
+                    cover.name,
+                    change_address,
+                    state,
+                    kwargs.get(IFSEI_ATTR_COMMAND),
+                )
+
                 if cover.callback_ is not None:
+                    logger.debug(
+                        "[device_id=%s kwargs=%s] dispatching callback",
+                        cover.unique_id,
+                        kwargs,
+                    )
                     cover.callback_(**kwargs)
+                else:
+                    logger.debug(
+                        "[device_id=%s] no subscriber registered, skipping callback",
+                        cover.unique_id,
+                    )
+        if not matched:
+            logger.warning(
+                "[address=%s state=%s] scene state change has no matching cover",
+                change_address,
+                state,
+            )
 
     def notify_subscriber(self, **kwargs: str) -> None:
         """
@@ -352,6 +449,14 @@ class DeviceManager:
         Args:
             **kwargs (str): Keyword arguments containing the state changes.
         """
+        notified_lights = sum(1 for light in self.lights if light.callback_ is not None)
+        notified_covers = sum(1 for cover in self.covers if cover.callback_ is not None)
+        logger.debug(
+            "[lights=%d covers=%d kwargs=%s] notifying subscribers",
+            notified_lights,
+            notified_covers,
+            kwargs,
+        )
         for light in self.lights:
             if light.callback_ is not None:
                 light.callback_(**kwargs)

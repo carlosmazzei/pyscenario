@@ -87,6 +87,15 @@ class IFSEI:
         self._reconnect_task: Optional[Task] = None
         self._telnetclient: Optional[IFSEITelnetClient] = None
 
+        logger.debug(
+            "[host=%s:%s protocol=%s reconnect=%s send_delay=%s] IFSEI instance created",
+            self.network_config.host,
+            self.network_config.tcp_port,
+            self.network_config.protocol.name,
+            self.network_config.reconnect,
+            self._send_delay,
+        )
+
     @classmethod
     def from_config(cls, config_file: str):
         """
@@ -121,7 +130,7 @@ class IFSEI:
         -------
             dict: Configuration data.
         """
-        logger.info("Reading from config file: %s", config_file)
+        logger.debug("[config=%s] reading from config file", config_file)
         with open(config_file, encoding="utf-8") as file:
             return json.load(file)
 
@@ -139,6 +148,7 @@ class IFSEI:
             current_directory = os.path.dirname(os.path.abspath(__file__))
             file = os.path.join(current_directory, DEVICE_FILE)
 
+        logger.debug("[file=%s] loading devices", file)
         self.device_manager = DeviceManager.from_config(file)
 
     def _validate_network_config(self, network_config: NetworkConfiguration) -> bool:
@@ -150,7 +160,13 @@ class IFSEI:
             if network_config.protocol not in [Protocol.TCP, Protocol.UDP]:
                 raise ValueError("Invalid protocol")
         except ValueError as e:
-            logger.error("Invalid network configuration: %s", e)
+            logger.error(
+                "[host=%s tcp_port=%s protocol=%s] invalid network configuration: %s",
+                network_config.host,
+                network_config.tcp_port,
+                network_config.protocol,
+                e,
+            )
             raise
         return True
 
@@ -164,7 +180,7 @@ class IFSEI:
         """
         self.network_config.reconnect = reconnect
         self.network_config.reconnect_delay = delay
-        logger.info("Reconnect options set: reconnect=%s, delay=%s", reconnect, delay)
+        logger.info("[reconnect=%s delay=%s] reconnect options set", reconnect, delay)
 
     def set_send_delay(self, delay: float) -> None:
         """
@@ -176,9 +192,12 @@ class IFSEI:
         self._send_delay = delay
         if self._telnetclient is not None:
             self._telnetclient.send_delay = delay
-            logger.info("Send delay set to: %s", delay)
+            logger.info("[delay=%s] send delay updated", delay)
         else:
-            logger.warning("Cannot set send delay without telnetclient")
+            logger.warning(
+                "[delay=%s] cannot set send delay: telnetclient not initialized",
+                delay,
+            )
 
     async def async_connect(self) -> bool:
         """
@@ -190,13 +209,17 @@ class IFSEI:
         """
         try:
             logger.info(
-                "Trying to connect to %s:%s",
+                "[host=%s:%s] connecting",
                 self.network_config.host,
                 self.network_config.tcp_port,
             )
 
             if self.connection is not None:
-                logger.info("IFSEI already connected")
+                logger.debug(
+                    "[host=%s:%s] already connected, skipping",
+                    self.network_config.host,
+                    self.network_config.tcp_port,
+                )
                 return True
 
             reader, writer = await telnetlib3.open_connection(
@@ -207,11 +230,16 @@ class IFSEI:
 
             self.connection = (reader, writer)
             self.process_task = asyncio.create_task(self._async_process_responses())
+            logger.info(
+                "[host=%s:%s] connected",
+                self.network_config.host,
+                self.network_config.tcp_port,
+            )
             return True
 
         except (ConnectionRefusedError, TimeoutError) as e:
             logger.error(
-                "Failed to connect to %s:%s: %s",
+                "[host=%s:%s] failed to connect: %s",
                 self.network_config.host,
                 self.network_config.tcp_port,
                 e,
@@ -225,19 +253,37 @@ class IFSEI:
     def _reconnect(self) -> None:
         """Start reconnect task."""
         if self.is_closing:
-            logger.info("Closing, do not start reconnect task")
+            logger.debug(
+                "[host=%s:%s] is_closing=True, not starting reconnect task",
+                self.network_config.host,
+                self.network_config.tcp_port,
+            )
             return
 
         if self._reconnect_task is None or self._reconnect_task.done():
-            logger.info("Starting reconnect task")
+            logger.debug(
+                "[host=%s:%s delay=%s] starting reconnect task",
+                self.network_config.host,
+                self.network_config.tcp_port,
+                self.network_config.reconnect_delay,
+            )
             self.connection = None
             self._reconnect_task = asyncio.create_task(self._async_reconnect())
             self.set_is_connected(False)
         else:
-            logger.info("Reconnect task already running")
+            logger.debug(
+                "[host=%s:%s] reconnect task already running",
+                self.network_config.host,
+                self.network_config.tcp_port,
+            )
 
     async def async_close(self) -> None:
         """Asynchronously close the client connection."""
+        logger.info(
+            "[host=%s:%s] closing IFSEI connection",
+            self.network_config.host,
+            self.network_config.tcp_port,
+        )
         self.is_closing = True
         if self._telnetclient is not None:
             await self._telnetclient.async_close()
@@ -250,7 +296,7 @@ class IFSEI:
             except asyncio.CancelledError:
                 pass
             self.process_task = None
-            logger.info("Process task cancelled")
+            logger.debug("process task cancelled")
 
         if self._reconnect_task is not None:
             self._reconnect_task.cancel()
@@ -259,7 +305,7 @@ class IFSEI:
             except asyncio.CancelledError:
                 pass
             self._reconnect_task = None
-            logger.info("Reconnect task cancelled")
+            logger.debug("reconnect task cancelled")
 
     def _create_client(self, **kwargs: Any):
         """
@@ -277,36 +323,61 @@ class IFSEI:
         )
         self._telnetclient.protocol = self.network_config.protocol
         self._telnetclient.send_delay = self._send_delay
+        logger.debug(
+            "[protocol=%s send_delay=%s] telnet client created",
+            self.network_config.protocol.name,
+            self._send_delay,
+        )
         return self._telnetclient
 
     def on_connection_lost(self) -> None:
         """Handle connection lost event."""
-        logger.warning("Connection to IFSEI lost")
+        logger.warning(
+            "[host=%s:%s] connection to IFSEI lost",
+            self.network_config.host,
+            self.network_config.tcp_port,
+        )
         self.set_is_connected(False)
         self._reconnect()
 
     async def _async_reconnect(self) -> None:
         """Asynchronously attempt to reconnect when the connection is lost."""
-        logger.info("Starting reconnect loop")
+        logger.debug(
+            "[host=%s:%s delay=%s] starting reconnect loop",
+            self.network_config.host,
+            self.network_config.tcp_port,
+            self.network_config.reconnect_delay,
+        )
         while not self.is_closing:
             try:
                 if await self.async_connect():
-                    logger.info("Reconnected to IFSEI")
+                    logger.info(
+                        "[host=%s:%s] reconnected to IFSEI",
+                        self.network_config.host,
+                        self.network_config.tcp_port,
+                    )
                     self._reconnect_task = None
                     break
                 else:
                     logger.error(
-                        "Reconnection attempt failed. Waiting for %s seconds",
+                        "[host=%s:%s delay=%s] reconnection attempt failed, waiting",
+                        self.network_config.host,
+                        self.network_config.tcp_port,
                         self.network_config.reconnect_delay,
                     )
                     await asyncio.sleep(self.network_config.reconnect_delay)
             except asyncio.CancelledError:
-                logger.info("Reconnect task cancelled")
+                logger.debug("reconnect task cancelled inside loop")
                 break
             except Exception as e:
-                logger.error("Reconnect error: %s", e)
+                logger.error(
+                    "[host=%s:%s] unexpected reconnect error: %s",
+                    self.network_config.host,
+                    self.network_config.tcp_port,
+                    e,
+                )
                 await asyncio.sleep(self.network_config.reconnect_delay)
-        logger.info("Reconnect loop ended")
+        logger.debug("reconnect loop ended")
 
     async def async_send_command(self, command: str) -> None:
         """
@@ -315,20 +386,21 @@ class IFSEI:
         Args:
             command (str): The command to send.
         """
+        logger.debug("[cmd=%s] enqueued for send", command)
         await self.queue_manager.send_queue.put(command)
 
     async def _async_process_responses(self) -> None:
         """Asynchronously process responses from the IFSEI device."""
-        logger.info("Starting response processing loop")
+        logger.debug("starting response processing loop")
         while True:
             try:
                 response = await self.queue_manager.receive_queue.get()
                 await self._async_handle_response(response)
             except asyncio.CancelledError:
-                logger.info("Process responses task cancelled")
+                logger.debug("process responses task cancelled")
                 break
             except Exception as e:
-                logger.error("Error processing responses: %s", e)
+                logger.error("error processing responses: %s", e)
                 break
 
     async def _async_handle_response(self, response: str) -> None:
@@ -338,9 +410,10 @@ class IFSEI:
         Args:
             response (str): The response to handle.
         """
-        logger.debug("Received response: %s", response)
+        logger.debug("[response=%s] dispatching", response)
 
         if response == "*IFSEION":
+            logger.debug("[response=%s] IFSEI ready signal received", response)
             self.set_is_connected(True)
             await self.async_monitor(7)
 
@@ -352,6 +425,8 @@ class IFSEI:
 
         elif response.startswith("E"):
             await self._async_handle_error(response)
+        else:
+            logger.debug("[response=%s] unknown response, ignored", response)
 
     async def _async_handle_zone_response(self, response: str) -> None:
         """
@@ -365,8 +440,8 @@ class IFSEI:
             module_number = int(response[2:4])
             channel = int(response[4:6])
             intensity = int(response[7:10])
-            logger.info(
-                "Zone response - Module: %s, Channel: %s, Intensity: %s",
+            logger.debug(
+                "[module=%02d channel=%02d intensity=%d] zone response parsed",
                 module_number,
                 channel,
                 intensity,
@@ -377,9 +452,13 @@ class IFSEI:
                     module_number, channel, intensity
                 )
             else:
-                logger.warning("Cannot handle zone response (no device manager found)")
+                logger.warning(
+                    "[module=%02d channel=%02d] cannot handle zone response: device_manager not loaded",
+                    module_number,
+                    channel,
+                )
         except ValueError as e:
-            logger.error("Error parsing zone response '%s': %s", response, e)
+            logger.error("[response=%s] error parsing zone response: %s", response, e)
 
     async def _async_handle_scene_response(self, response: str) -> None:
         """
@@ -392,16 +471,20 @@ class IFSEI:
             # Scene status: *C{address:4}{state:1} 1/0
             address = response[2:6]
             state = response[6:7]
-            logger.info("Scene response - Address: %s, State: %s", address, state)
+            logger.debug("[address=%s state=%s] scene response parsed", address, state)
 
             if self.device_manager is not None:
                 await self.device_manager.async_handle_scene_state_change(
                     address, state
                 )
             else:
-                logger.warning("Cannot handle scene response (no device manager found)")
+                logger.warning(
+                    "[address=%s state=%s] cannot handle scene response: device_manager not loaded",
+                    address,
+                    state,
+                )
         except Exception as e:
-            logger.error("Error parsing scene response '%s': %s", response, e)
+            logger.error("[response=%s] error parsing scene response: %s", response, e)
 
     async def _async_handle_error(self, response: str) -> None:
         """
@@ -415,7 +498,9 @@ class IFSEI:
         if error_code.startswith("E3"):
             module_address = error_code[2:]
             error_message += f" Module Address: {module_address}"
-        logger.error("Error received: %s", error_message)
+        logger.error(
+            "[error_code=%s] device reported error: %s", error_code, error_message
+        )
 
     def set_protocol(self, protocol: Protocol = Protocol.TCP) -> None:
         """
@@ -424,7 +509,13 @@ class IFSEI:
         Args:
             protocol (Protocol): The protocol to use (default is TCP).
         """
+        previous = self.network_config.protocol
         self.network_config.protocol = protocol
+        logger.info(
+            "[protocol=%s previous=%s] protocol updated",
+            protocol.name,
+            previous.name,
+        )
 
     def get_device_id(self) -> str:
         """
@@ -445,35 +536,49 @@ class IFSEI:
         """
         self.is_connected = is_available
         if self.device_manager is not None:
-            logger.info("Set IFSEI availability to: %s", is_available)
+            logger.info(
+                "[available=%s host=%s:%s] IFSEI availability changed",
+                is_available,
+                self.network_config.host,
+                self.network_config.tcp_port,
+            )
             kwargs = {"available": str(is_available)}
             self.device_manager.notify_subscriber(**kwargs)
         else:
-            logger.warning("Cannot set device availability (no device manager found)")
+            logger.warning(
+                "[available=%s] cannot propagate availability: device_manager not loaded",
+                is_available,
+            )
 
     # Commands for control/configuration
     async def async_get_version(self) -> None:
         """Asynchronously get the IFSEI version."""
+        logger.debug("requesting IFSEI version")
         await self.async_send_command("$VER")
 
     async def async_get_ip(self) -> None:
         """Asynchronously get the IP address."""
+        logger.debug("requesting IP address")
         await self.async_send_command("$IP")
 
     async def async_get_gateway(self) -> None:
         """Asynchronously get the gateway."""
+        logger.debug("requesting gateway")
         await self.async_send_command("$GATEWAY")
 
     async def async_get_netmask(self) -> None:
         """Asynchronously get the netmask."""
+        logger.debug("requesting netmask")
         await self.async_send_command("$NETMASK")
 
     async def async_get_tcp_port(self) -> None:
         """Asynchronously get the TCP port."""
+        logger.debug("requesting TCP port")
         await self.async_send_command("$PORT TCP")
 
     async def async_get_udp_port(self) -> None:
         """Asynchronously get the UDP port."""
+        logger.debug("requesting UDP port")
         await self.async_send_command("$PORT UDP")
 
     async def async_monitor(self, level: int) -> None:
@@ -489,6 +594,7 @@ class IFSEI:
         """
         if not 1 <= level <= 7:
             raise ValueError("Monitor level must be between 1 and 7")
+        logger.debug("[level=%d] enabling monitor", level)
         await self.async_send_command(f"MON{level}")
 
     async def async_update_light_state(self, device_id: str, colors: List[int]) -> None:
@@ -507,9 +613,15 @@ class IFSEI:
             raise ValueError("Colors list must have exactly 4 elements")
 
         if self.device_manager is None:
-            logger.error("Cannot update light state (no device manager found)")
+            logger.error(
+                "[device_id=%s] cannot update light state: device_manager not loaded",
+                device_id,
+            )
             return
 
+        logger.debug(
+            "[device_id=%s rgbw=%s] update_light_state requested", device_id, colors
+        )
         for device in self.device_manager.lights:
             if device.unique_id == device_id:
                 # Propagate changes to every address
@@ -524,12 +636,24 @@ class IFSEI:
                     elif address["name"] == IFSEI_ATTR_BRIGHTNESS:
                         value = colors[3]
 
+                    logger.debug(
+                        "[device_id=%s module=%s channel=%s name=%s value=%s] propagating address change",
+                        device_id,
+                        address["module"],
+                        address["channel"],
+                        address["name"],
+                        value,
+                    )
                     await self.async_set_zone_intensity(
                         int(address["module"]),
                         int(address["channel"]),
                         value,
                     )
                 return
+        logger.warning(
+            "[device_id=%s] update_light_state: no matching light found",
+            device_id,
+        )
 
     async def async_update_cover_state(self, device_id: str, address: int) -> None:
         """
@@ -540,13 +664,25 @@ class IFSEI:
             address (int): The address to update.
         """
         if self.device_manager is None:
-            logger.error("Cannot update cover state (no device manager found)")
+            logger.error(
+                "[device_id=%s] cannot update cover state: device_manager not loaded",
+                device_id,
+            )
             return
 
+        logger.debug(
+            "[device_id=%s address=%s] update_cover_state requested",
+            device_id,
+            address,
+        )
         for device in self.device_manager.covers:
             if device.unique_id == device_id:
                 await self.async_set_shader_state(address)
                 return
+        logger.warning(
+            "[device_id=%s] update_cover_state: no matching cover found",
+            device_id,
+        )
 
     # Commands for the Scenario Classic-NET network
     async def async_change_scene(self, module_address: int, scene_number: int) -> None:
@@ -557,6 +693,11 @@ class IFSEI:
             module_address (int): The module address.
             scene_number (int): The scene number.
         """
+        logger.debug(
+            "[module=%02d scene=%02d] change_scene",
+            module_address,
+            scene_number,
+        )
         await self.async_send_command(f"D{module_address:02}C{scene_number:02}")
 
     async def async_toggle_zone(
@@ -576,6 +717,12 @@ class IFSEI:
         """
         if state not in [0, 1]:
             raise ValueError("State must be 0 or 1")
+        logger.debug(
+            "[module=%02d zone=%d state=%d] toggle_zone",
+            module_address,
+            zone_number,
+            state,
+        )
         await self.async_send_command(f"$D{module_address:02}Z{zone_number}{state}")
 
     async def async_get_scene_status(self, module_address: int) -> None:
@@ -585,6 +732,7 @@ class IFSEI:
         Args:
             module_address (int): The module address.
         """
+        logger.debug("[module=%02d] requesting scene status", module_address)
         await self.async_send_command(f"$D{module_address:02}ST")
 
     async def async_set_zone_intensity(
@@ -604,6 +752,12 @@ class IFSEI:
         """
         if not 0 <= intensity <= 100:
             raise ValueError("Intensity must be between 0 and 100")
+        logger.debug(
+            "[module=%02d channel=%d intensity=%d] set_zone_intensity",
+            module_address,
+            channel,
+            intensity,
+        )
         await self.async_send_command(
             f"Z{module_address:02}{channel:01}L{intensity:03}T1"
         )
@@ -615,6 +769,7 @@ class IFSEI:
         Args:
             module_address (int): The module address.
         """
+        logger.debug("[address=%04d] set_shader_state", module_address)
         await self.async_send_command(f"C{module_address:04}")
 
     async def async_get_zone_intensity(
@@ -627,6 +782,11 @@ class IFSEI:
             module_address (int): The module address.
             zone_number (int): The zone number.
         """
+        logger.debug(
+            "[module=%02d zone=%d] requesting zone intensity",
+            module_address,
+            zone_number,
+        )
         await self.async_send_command(f"$D{module_address:02}Z{zone_number}I")
 
     async def async_increase_scene_intensity(self, module_address: int) -> None:
@@ -636,6 +796,7 @@ class IFSEI:
         Args:
             module_address (int): The module address.
         """
+        logger.debug("[module=%02d] increase_scene_intensity", module_address)
         await self.async_send_command(f"$D{module_address:02}C+")
 
     async def async_decrease_scene_intensity(self, module_address: int) -> None:
@@ -645,6 +806,7 @@ class IFSEI:
         Args:
             module_address (int): The module address.
         """
+        logger.debug("[module=%02d] decrease_scene_intensity", module_address)
         await self.async_send_command(f"$D{module_address:02}C-")
 
     async def async_increase_zone_intensity(
@@ -657,6 +819,11 @@ class IFSEI:
             module_address (int): The module address.
             zone_number (int): The zone number.
         """
+        logger.debug(
+            "[module=%02d zone=%d] increase_zone_intensity",
+            module_address,
+            zone_number,
+        )
         await self.async_send_command(f"$D{module_address:02}Z{zone_number}+")
 
     async def async_decrease_zone_intensity(
@@ -669,6 +836,11 @@ class IFSEI:
             module_address (int): The module address.
             zone_number (int): The zone number.
         """
+        logger.debug(
+            "[module=%02d zone=%d] decrease_zone_intensity",
+            module_address,
+            zone_number,
+        )
         await self.async_send_command(f"$D{module_address:02}Z{zone_number}-")
 
     async def async_record_scene(self, module_address: int) -> None:
@@ -694,6 +866,11 @@ class IFSEI:
             module_address (int): The module address.
             setup_number (int): The setup number.
         """
+        logger.debug(
+            "[module=%02d setup=%d] requesting module configuration",
+            module_address,
+            setup_number,
+        )
         await self.async_send_command(f"$D{module_address:02}P{setup_number}ST")
 
     async def async_execute_macro_key_press(self, prid: str, key_number: int) -> None:
@@ -704,6 +881,7 @@ class IFSEI:
             prid (str): The PRID.
             key_number (int): The key number.
         """
+        logger.debug("[prid=%s key=%d] execute_macro_key_press", prid, key_number)
         await self.async_send_command(f"I{prid}{key_number}P")
 
     async def async_execute_macro_key_release(self, prid: str, key_number: int) -> None:
@@ -714,4 +892,5 @@ class IFSEI:
             prid (str): The PRID.
             key_number (int): The key number.
         """
+        logger.debug("[prid=%s key=%d] execute_macro_key_release", prid, key_number)
         await self.async_send_command(f"I{prid}{key_number}R")
