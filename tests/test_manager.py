@@ -213,6 +213,46 @@ async def test_device_manager_async_handle_scene_state_change(
     callback.assert_called_once()
 
 
+@pytest.mark.asyncio
+async def test_device_manager_cover_physical_relays(monkeypatch):
+    """Test handling physical cover relay zone state change in DeviceManager."""
+    cover = Cover(
+        unique_id="2_bedroom",
+        name="Shade 1",
+        zone="Bedroom",
+        up="1234",
+        stop="5678",
+        down="9012",
+        module=1,
+        open_channel=7,
+        close_channel=8,
+    )
+    manager = DeviceManager(
+        lights=[],
+        covers=[cover],
+        zones={"2": "Bedroom"},
+    )
+
+    callback = mock.Mock()
+    monkeypatch.setattr(cover, "callback_", callback)
+
+    # Test open relay ON (intensity = 100)
+    await manager.async_handle_zone_state_change(1, 7, 100)
+    callback.assert_called_with(open_relay=100)
+
+    # Test open relay OFF (intensity = 0)
+    await manager.async_handle_zone_state_change(1, 7, 0)
+    callback.assert_called_with(open_relay=0)
+
+    # Test close relay ON (intensity = 100)
+    await manager.async_handle_zone_state_change(1, 8, 100)
+    callback.assert_called_with(close_relay=100)
+
+    # Test close relay OFF (intensity = 0)
+    await manager.async_handle_zone_state_change(1, 8, 0)
+    callback.assert_called_with(close_relay=0)
+
+
 def test_device_manager_notify_subscriber(monkeypatch, mock_device_manager_config):
     """Test notifying subscribers in DeviceManager."""
     manager = DeviceManager.from_config("device_config.yaml")
