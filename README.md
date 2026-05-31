@@ -113,6 +113,9 @@ shades:
     address1: "0002"
     address2: "0003"
     address3: "0004"
+    module: 1            # Optional physical relay module
+    open_channel: 7      # Optional physical open/up channel
+    close_channel: 8     # Optional physical close/down channel
   - id: 2
     name: Persiana LD
     zone: 1
@@ -145,21 +148,32 @@ def light_update_callback(self, **kwargs: Any):
 
 #### Shades / Covers
 
-Shade devices typically have three addresses. The first corresponds to the up command, the second to stop, and the third to down.
+Shade devices typically have three addresses. The first corresponds to the up command (`address1`), the second to stop (`address2`), and the third to down (`address3`).
 
-The update callback should support **kwargs with the following parameters:
+Optionally, you can map the physical relay module and channels using `module`, `open_channel`, and `close_channel`. Doing so will allow the library to intercept physical relay feedback signals (`*Z` commands) and forward them to the cover's callback to track intermediate curtain positions (e.g. for Home Assistant position calculation).
 
-- IFSEI_ATTR_AVAILABLE: Availability of the device
-- IFSEI_ATTR_COMMAND: Command for the device (IFSEI_COVER_DOWN, IFSEI_COVER_UP, or IFSEI_COVER_STOP)
-- IFSEI_ATTR_STATE: State of the scene (IFSEI_ATTR_SCENE_ACTIVE or IFSEI_ATTR_SCENE_INACTIVE)
+The update callback should support `**kwargs` with the following parameters:
+
+- `IFSEI_ATTR_AVAILABLE`: Availability of the device.
+- `IFSEI_ATTR_COMMAND`: Command for the device (e.g., `IFSEI_COVER_DOWN`, `IFSEI_COVER_UP`, or `IFSEI_COVER_STOP`).
+- `IFSEI_ATTR_STATE`: State of the scene (e.g., `IFSEI_ATTR_SCENE_ACTIVE` or `IFSEI_ATTR_SCENE_INACTIVE`).
+- `open_relay`: The state of the physical opening relay (e.g., `100` for active/ON, `0` for inactive/OFF) if configured.
+- `close_relay`: The state of the physical closing relay (e.g., `100` for active/ON, `0` for inactive/OFF) if configured.
 
 ```python
 def shade_update_callback(self, **kwargs: Any):
     available = kwargs.pop(IFSEI_ATTR_AVAILABLE, None)
     command = kwargs.pop(IFSEI_ATTR_COMMAND, None)
     state = kwargs.pop(IFSEI_ATTR_STATE, None)
-    print(f"Shade Update - Available: {available}, Command: {command}, State: {state}")
+    open_relay = kwargs.pop("open_relay", None)
+    close_relay = kwargs.pop("close_relay", None)
+    print(
+        f"Shade Update - Available: {available}, Command: {command}, State: {state}, "
+        f"Open Relay: {open_relay}, Close Relay: {close_relay}"
+    )
 ```
+
+For a detailed guide on how to consume these physical relay events inside a Home Assistant custom integration to track cover positions, see [ha_integration_spec.md](ha_integration_spec.md).
 
 ## Message reception and processing
 

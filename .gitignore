@@ -157,6 +157,7 @@ config.yml
 core
 data/**
 .DS_Store
+.antigravitycli
 
 ## Data files
 *.h5
