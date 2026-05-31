@@ -160,7 +160,16 @@ class Cover(Device):
     """
 
     def __init__(
-        self, unique_id: str, name: str, zone: str, up: str, stop: str, down: str
+        self,
+        unique_id: str,
+        name: str,
+        zone: str,
+        up: str,
+        stop: str,
+        down: str,
+        module: int | None = None,
+        open_channel: int | None = None,
+        close_channel: int | None = None,
     ) -> None:
         """
         Initialize a Cover object.
@@ -172,6 +181,9 @@ class Cover(Device):
             up (str): Address for the up command.
             stop (str): Address for the stop command.
             down (str): Address for the down command.
+            module (int | None): Opcional module address of the physical relay.
+            open_channel (int | None): Opcional channel of the opening physical relay.
+            close_channel (int | None): Opcional channel of the closing physical relay.
         """
         super().__init__()
         self.unique_id = str(f"{unique_id}_{zone}").lower().replace(" ", "_")
@@ -180,6 +192,9 @@ class Cover(Device):
         self.up = up
         self.stop = stop
         self.down = down
+        self.module = module
+        self.open_channel = open_channel
+        self.close_channel = close_channel
         self.is_closed = False
 
 
@@ -265,15 +280,21 @@ class DeviceManager:
                     up=str(covers_data["address1"]),
                     stop=str(covers_data["address2"]),
                     down=str(covers_data["address3"]),
+                    module=covers_data.get("module"),
+                    open_channel=covers_data.get("open_channel"),
+                    close_channel=covers_data.get("close_channel"),
                 )
                 covers.append(cover)
                 logger.debug(
-                    "[device_id=%s type=cover zone=%s up=%s stop=%s down=%s] parsed",
+                    "[device_id=%s type=cover zone=%s up=%s stop=%s down=%s module=%s open_channel=%s close_channel=%s] parsed",
                     cover.unique_id,
                     cover.zone,
                     cover.up,
                     cover.stop,
                     cover.down,
+                    cover.module,
+                    cover.open_channel,
+                    cover.close_channel,
                 )
 
             logger.info(
@@ -375,9 +396,50 @@ class DeviceManager:
                             "[device_id=%s] no subscriber registered, skipping callback",
                             light.unique_id,
                         )
+
+        # Match covers/shades physical relay zone state changes
+        for cover in self.covers:
+            if cover.module == module_number:
+                if cover.open_channel == channel:
+                    matched = True
+                    if cover.callback_ is not None:
+                        kwargs = {"open_relay": state}
+                        logger.debug(
+                            "[device_id=%s name=%s module=%02d channel=%02d open_relay=%s] cover physical relay state updated",
+                            cover.unique_id,
+                            cover.name,
+                            module_number,
+                            channel,
+                            state,
+                        )
+                        cover.callback_(**kwargs)
+                    else:
+                        logger.debug(
+                            "[device_id=%s] no subscriber registered, skipping callback",
+                            cover.unique_id,
+                        )
+                elif cover.close_channel == channel:
+                    matched = True
+                    if cover.callback_ is not None:
+                        kwargs = {"close_relay": state}
+                        logger.debug(
+                            "[device_id=%s name=%s module=%02d channel=%02d close_relay=%s] cover physical relay state updated",
+                            cover.unique_id,
+                            cover.name,
+                            module_number,
+                            channel,
+                            state,
+                        )
+                        cover.callback_(**kwargs)
+                    else:
+                        logger.debug(
+                            "[device_id=%s] no subscriber registered, skipping callback",
+                            cover.unique_id,
+                        )
+
         if not matched:
             logger.warning(
-                "[module=%02d channel=%02d state=%s] zone state change has no matching light",
+                "[module=%02d channel=%02d state=%s] zone state change has no matching light/cover",
                 module_number,
                 channel,
                 state,

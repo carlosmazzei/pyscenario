@@ -41,6 +41,9 @@ shades_schema = Schema(
         Required("address1"): Coerce(str),
         Required("address2"): Coerce(str),
         Required("address3"): Coerce(str),
+        Optional("module"): Coerce(int),
+        Optional("open_channel"): Coerce(int),
+        Optional("close_channel"): Coerce(int),
     }
 )
 
