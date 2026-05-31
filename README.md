@@ -173,6 +173,8 @@ def shade_update_callback(self, **kwargs: Any):
     )
 ```
 
+For a detailed guide on how to consume these physical relay events inside a Home Assistant custom integration to track cover positions, see [ha_integration_spec.md](ha_integration_spec.md).
+
 ## Message reception and processing
 
 The IFSEI class creates two queues: one for receiving messages and another for sending messages. These queues are also used by the telnet client to process incoming and outgoing messages. All messages are processed by the IFSEI class, and the IFSEITelnetClient puts and gets messages from these queues.
