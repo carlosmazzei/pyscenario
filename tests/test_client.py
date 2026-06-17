@@ -4,6 +4,7 @@ import types
 from unittest.mock import AsyncMock, MagicMock, create_autospec, patch
 
 import pytest
+import pytest_asyncio
 from pyscenario import Protocol, QueueManager
 from pyscenario.client import (
     IFSEITelnetClient,
@@ -23,8 +24,8 @@ def queue_manager():
     return qm
 
 
-@pytest.fixture
-def telnet_client(queue_manager):
+@pytest_asyncio.fixture
+async def telnet_client(queue_manager):
     """Telnet client fixture."""
     cb = MagicMock(response=None)
     client = IFSEITelnetClient(
