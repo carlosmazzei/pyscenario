@@ -525,7 +525,8 @@ async def test_reconnect_when_not_closing_and_no_task_running(
     ifsei_instance.set_is_connected.assert_called_once_with(False)
 
 
-def test_create_client(ifsei_instance):
+@pytest.mark.asyncio
+async def test_create_client(ifsei_instance):
     """Test the create_client method of the IFSEI class."""
     mock_queue_manager = mock.Mock(spec=QueueManager)
     mock_callback = mock.Mock()
